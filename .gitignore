@@ -1,2 +1,4 @@
-# Older theme versions to compare locally
-/theme/*1.*.*.json
+/dist
+/node_modules
+
+/*.vsix

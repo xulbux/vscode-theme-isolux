@@ -30,16 +30,35 @@
   "bugs": { "url": "https://github.com/xulbux/vscode-theme-xulbux-pro/issues" },
   "repository": { "type": "git", "url": "https://github.com/xulbux/vscode-theme-xulbux-pro" },
   "license": "MIT",
+  "type": "module",
   "contributes": {
     "themes": [
-      { "label": "XulbuX PRO", "uiTheme": "vs-dark", "path": "./theme/xulbux-pro.json" },
-      { "label": "XulbuX PRO Legacy", "uiTheme": "vs-dark", "path": "./theme/xulbux-pro-legacy.json" },
-      { "label": "XulbuX VaporWave", "uiTheme": "vs-dark", "path": "./theme/xulbux-vaporwave.json" }
+      { "label": "XulbuX PRO", "uiTheme": "vs-dark", "path": "./dist/xulbux-pro.json" },
+      { "label": "XulbuX PRO Legacy", "uiTheme": "vs-dark", "path": "./dist/xulbux-pro-legacy.json" },
+      { "label": "XulbuX VaporWave", "uiTheme": "vs-dark", "path": "./dist/xulbux-vaporwave.json" }
     ]
+  },
+  "scripts": {
+    "build": "node scripts/build.ts",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "lint": "oxlint --fix",
+    "lint:check": "oxlint",
+    "type-check": "tsc --noEmit",
+    "update:color-ids": "node scripts/updateColorIds.ts",
+    "update:tailwind-colors": "node scripts/updateTailwindColors.ts",
+    "vscode:prepublish": "node scripts/build.ts",
+    "watch": "node scripts/build.ts --watch"
   },
   "icon": "./assets/icon.png",
   "engines": { "vscode": "^1.87.0" },
   "sponsor": { "url": "https://github.com/sponsors/xulbux" },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "oxfmt": "^0.71.0",
+    "oxlint": "^1.86.0",
+    "typescript": "^7.0.2"
+  },
   "__metadata": {
     "id": "39cf6240-75d9-4602-97ff-1c0b1e355e94",
     "publisherId": "77f5e7c0-42af-4d80-ab24-d9657bfebe93",

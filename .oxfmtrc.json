@@ -1,0 +1,28 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "arrowParens": "always",
+  "bracketSameLine": true,
+  "bracketSpacing": true,
+  "endOfLine": "lf",
+  "ignorePatterns": [
+    ".github/**",
+    ".markdownlint.json",
+    "*.md",
+    "assets/**",
+    "dist/**",
+    "package.json",
+    "packages/**",
+    "theme/**"
+  ],
+  "objectWrap": "collapse",
+  "printWidth": 100,
+  "proseWrap": "preserve",
+  "quoteProps": "as-needed",
+  "semi": true,
+  "singleQuote": true,
+  "sortImports": { "newlinesBetween": false },
+  "sortPackageJson": { "sortScripts": true },
+  "tabWidth": 2,
+  "trailingComma": "es5",
+  "useTabs": false
+}

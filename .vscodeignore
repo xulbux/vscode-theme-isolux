@@ -1,5 +1,7 @@
-# GitHub resources:
+# Agent rules, GitHub & editor resources:
+.agents/
 .github/
+.vscode/
 
 # Preview images & code samples:
 assets/preview/
@@ -7,11 +9,20 @@ assets/preview/
 # VSix package archives:
 packages/
 
-# Text files (color palettes, …) in theme folder:
-theme/*.txt
-# Older theme files (specific version in filename):
-theme/*1.*.*.json
+# Theme sources (the generated themes in `dist/` are shipped instead):
+theme/
+# Generated JSON schemas (only used while editing the theme sources):
+dist/*.schema.json
+
+# Build scripts & dependencies:
+node_modules/
+scripts/
 
 # Config files:
 .gitignore
 .markdownlint.json
+.oxfmtrc.json
+.oxlintrc.json
+pnpm-lock.yaml
+pnpm-workspace.yaml
+tsconfig.json
