@@ -20,6 +20,11 @@ function editDistance(a: string, b: string): number {
   return previous[b.length];
 }
 
+/** Escape every character that has a special meaning in a regular expression. */
+export function escapeRegExp(text: string): string {
+  return text.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+}
+
 /**
  * Find the candidate most similar to `input`, for "Did you mean …?" hints.
  * @param maxDistance   Candidates further away than this are never suggested.

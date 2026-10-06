@@ -1,4 +1,5 @@
 /dist
 /node_modules
 
+# Temp builds in the project root:
 /*.vsix

@@ -1,23 +1,29 @@
 /**
- * Contrast check – warns about text and icon colors that are hard to read on their background.
+ * Contrast check – Warns about text and icon colors that are hard to read on their background.
  *
  * Uses the WCAG 2 contrast ratio (https://www.w3.org/TR/WCAG21/#contrast-minimum):
- * - `TEXT` (4.5:1) – regular text (labels, editor text, active / hovered items, buttons, …)
- * - `SECONDARY` (3:1) – intentionally dimmed text and icons (inactive tabs, placeholders, line numbers, …)
+ * - `TEXT` (4.5:1) – Regular text (labels, editor text, active / hovered items, buttons, …)
+ * - `SECONDARY` (3:1) – Intentionally dimmed text and icons (inactive tabs, placeholders, line numbers, …)
  *
  * Every pair is checked on the compiled theme (hex colors only). Translucent backgrounds are blended over the
  * surface they're drawn on (`over`), translucent foregrounds over the resulting background.
  * Pairs whose foreground or background isn't set by the theme are skipped (VS Code's defaults apply there).
+ *
+ * The same measurement resolves color pairs (`gray-900|gray-50`, see `pickBestContrast`): foregrounds in
+ * `CONTRAST_PAIRS` may list two colors, and the one with the better contrast against its background is used.
  */
 
-import type { BuildIssue } from '../types.ts';
-import { composite, contrastRatio } from '../utils/color.ts';
+import type { BuildIssue } from '../types/index.ts';
+import { composite, contrastRatio, isHexColor } from '../utils/color.ts';
+import { isPlainObject } from '../utils/object.ts';
 
 // ---------------------------------------- TYPES ----------------------------------------
 
 /** A foreground / background pair of `colors` keys that must reach a minimum contrast ratio. */
 interface ContrastPair {
+  /** The `colors` key of the text or icon color. */
   foreground: string;
+  /** The `colors` key of the color it's drawn on. */
   background: string;
   /** Surface below a translucent `background` (defaults to `DEFAULT_SURFACE`). */
   over?: string;
@@ -25,7 +31,7 @@ interface ContrastPair {
   min: number;
 }
 
-// ---------------------------------------- CONSTS ----------------------------------------
+// ---------------------------------------- CONSTS ---------------------------------------
 
 /** Minimum contrast for regular text (WCAG AA). */
 const TEXT = 4.5;
@@ -43,7 +49,7 @@ const DEFAULT_SURFACE = 'editor.background';
 const FALLBACK_SURFACE_HEX = '#000000';
 
 const CONTRAST_PAIRS: readonly ContrastPair[] = [
-  // editor
+  // Editor:
   { background: 'editor.background', foreground: 'editor.foreground', min: TEXT },
   { background: 'editor.background', foreground: 'editorLineNumber.activeForeground', min: TEXT },
   { background: 'editor.background', foreground: 'editorLineNumber.foreground', min: SECONDARY },
@@ -55,7 +61,7 @@ const CONTRAST_PAIRS: readonly ContrastPair[] = [
   },
   { background: 'editor.background', foreground: 'textLink.foreground', min: TEXT },
   { background: 'editor.background', foreground: 'textLink.activeForeground', min: TEXT },
-  // tabs
+  // Tabs:
   { background: 'tab.activeBackground', foreground: 'tab.activeForeground', min: TEXT },
   { background: 'tab.inactiveBackground', foreground: 'tab.inactiveForeground', min: SECONDARY },
   { background: 'tab.hoverBackground', foreground: 'tab.hoverForeground', min: TEXT },
@@ -71,7 +77,7 @@ const CONTRAST_PAIRS: readonly ContrastPair[] = [
     min: TEXT,
     over: 'panel.background',
   },
-  // workbench parts
+  // Workbench parts:
   { background: 'titleBar.activeBackground', foreground: 'titleBar.activeForeground', min: TEXT },
   {
     background: 'titleBar.inactiveBackground',
@@ -148,7 +154,7 @@ const CONTRAST_PAIRS: readonly ContrastPair[] = [
     over: 'statusBar.background',
   },
   { background: 'breadcrumb.background', foreground: 'breadcrumb.foreground', min: SECONDARY },
-  // lists
+  // Lists:
   {
     background: 'list.activeSelectionBackground',
     foreground: 'list.activeSelectionForeground',
@@ -174,7 +180,7 @@ const CONTRAST_PAIRS: readonly ContrastPair[] = [
     over: 'sideBar.background',
   },
   { background: 'sideBar.background', foreground: 'list.deemphasizedForeground', min: SECONDARY },
-  // controls
+  // Controls:
   { background: 'button.background', foreground: 'button.foreground', min: TEXT },
   { background: 'button.hoverBackground', foreground: 'button.foreground', min: TEXT },
   { background: 'button.secondaryBackground', foreground: 'button.secondaryForeground', min: TEXT },
@@ -225,6 +231,11 @@ const CONTRAST_PAIRS: readonly ContrastPair[] = [
     foreground: 'debugView.stateLabelForeground',
     min: TEXT,
   },
+  {
+    background: 'testing.message.error.badgeBackground',
+    foreground: 'testing.message.error.badgeForeground',
+    min: TEXT,
+  },
   { background: 'input.background', foreground: 'input.foreground', min: TEXT },
   { background: 'input.background', foreground: 'input.placeholderForeground', min: SECONDARY },
   { background: 'dropdown.background', foreground: 'dropdown.foreground', min: TEXT },
@@ -243,7 +254,7 @@ const CONTRAST_PAIRS: readonly ContrastPair[] = [
     foreground: 'inputValidation.infoForeground',
     min: TEXT,
   },
-  // widgets and overlays
+  // Widgets and overlays:
   { background: 'editorWidget.background', foreground: 'editorWidget.foreground', min: TEXT },
   {
     background: 'editorHoverWidget.background',
@@ -278,15 +289,21 @@ const CONTRAST_PAIRS: readonly ContrastPair[] = [
   { background: 'notifications.background', foreground: 'notifications.foreground', min: TEXT },
 ];
 
+/** The `colors` keys checked as a foreground, which may use a color pair (see `pickBestContrast`). */
+export const CONTRAST_FOREGROUND_KEYS: ReadonlySet<string> = new Set(
+  CONTRAST_PAIRS.map((pair) => pair.foreground)
+);
+
 // -------------------------------------- INTERNALS --------------------------------------
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
+/** Read a resolved color; Values that aren't hex colors (yet) are treated as not set. */
 function readColor(colors: Record<string, unknown>, key: string): string | undefined {
   const value = colors[key];
-  return typeof value === 'string' ? value : undefined;
+  return isHexColor(value) ? value : undefined;
+}
+
+function readSurface(colors: Record<string, unknown>): string {
+  return readColor(colors, DEFAULT_SURFACE) ?? FALLBACK_SURFACE_HEX;
 }
 
 /**
@@ -295,6 +312,29 @@ function readColor(colors: Record<string, unknown>, key: string): string | undef
 function measure(foreground: string, background: string, surface: string): number {
   const solidBackground = composite(background, surface);
   return contrastRatio(composite(foreground, solidBackground), solidBackground);
+}
+
+/**
+ * Contrast ratio of `foreground` on the background of `pair`.
+ *
+ * @param pair         The contrast pair to measure.
+ * @param foreground   The foreground color (instead of the one set for `pair.foreground`).
+ * @param colors       The resolved `colors` of the theme.
+ * @param surface      Surface below translucent backgrounds without an explicit `over`.
+ * @returns The contrast ratio, or `undefined` if the pair's background isn't set.
+ */
+function measurePair(
+  pair: ContrastPair,
+  foreground: string,
+  colors: Record<string, unknown>,
+  surface: string
+): number | undefined {
+  const background = readColor(colors, pair.background);
+  if (background === undefined) {
+    return undefined;
+  }
+  const below = readColor(colors, pair.over ?? DEFAULT_SURFACE) ?? surface;
+  return measure(foreground, background, below);
 }
 
 function contrastIssue(path: string, ratio: number, min: number, against: string): BuildIssue {
@@ -308,20 +348,17 @@ function checkPairs(colors: Record<string, unknown>, surface: string): BuildIssu
   const issues: BuildIssue[] = [];
   for (const pair of CONTRAST_PAIRS) {
     const foreground = readColor(colors, pair.foreground);
-    const background = readColor(colors, pair.background);
-    if (foreground !== undefined && background !== undefined) {
-      const below = readColor(colors, pair.over ?? DEFAULT_SURFACE) ?? surface;
-      const ratio = measure(foreground, background, below);
-      if (ratio < pair.min) {
-        issues.push(
-          contrastIssue(
-            `colors[${JSON.stringify(pair.foreground)}]`,
-            ratio,
-            pair.min,
-            `"${pair.background}"`
-          )
-        );
-      }
+    const ratio =
+      foreground === undefined ? undefined : measurePair(pair, foreground, colors, surface);
+    if (ratio !== undefined && ratio < pair.min) {
+      issues.push(
+        contrastIssue(
+          `colors[${JSON.stringify(pair.foreground)}]`,
+          ratio,
+          pair.min,
+          `"${pair.background}"`
+        )
+      );
     }
   }
   return issues;
@@ -358,7 +395,45 @@ function checkTokenColors(theme: Record<string, unknown>, editorBackground: stri
   return issues;
 }
 
-// ---------------------------------------- PUBLIC ----------------------------------------
+// -------------------------------------- PUBLIC API -------------------------------------
+
+/**
+ * Pick the candidate foreground with the best contrast against the backgrounds `key` is checked against.
+ *
+ * If `key` has several contrast pairs (e.g., a normal and a hover background), the candidate whose
+ * lowest contrast (relative to each pair's minimum) is the highest wins. On a tie, the first candidate wins.
+ *
+ * @param key          The `colors` key the candidates are for (a foreground in `CONTRAST_PAIRS`).
+ * @param candidates   The candidate hex colors.
+ * @param colors       The `colors` of the theme (only the resolved hex colors are considered).
+ * @returns The index of the best candidate, or `undefined` if none of the backgrounds is set.
+ */
+export function pickBestContrast(
+  key: string,
+  candidates: readonly string[],
+  colors: Record<string, unknown>
+): number | undefined {
+  const surface = readSurface(colors);
+  const pairs = CONTRAST_PAIRS.filter(
+    (pair) => pair.foreground === key && readColor(colors, pair.background) !== undefined
+  );
+  if (pairs.length === 0) {
+    return undefined;
+  }
+
+  let bestIndex = 0;
+  let bestScore = Number.NEGATIVE_INFINITY;
+  for (const [index, candidate] of candidates.entries()) {
+    const score = Math.min(
+      ...pairs.map((pair) => (measurePair(pair, candidate, colors, surface) ?? 0) / pair.min)
+    );
+    if (score > bestScore) {
+      bestIndex = index;
+      bestScore = score;
+    }
+  }
+  return bestIndex;
+}
 
 /**
  * Check the contrast of a compiled theme (hex colors only, see `compileTheme`).
@@ -366,6 +441,6 @@ function checkTokenColors(theme: Record<string, unknown>, editorBackground: stri
  */
 export function checkContrast(theme: Record<string, unknown>): BuildIssue[] {
   const colors = isPlainObject(theme.colors) ? theme.colors : {};
-  const surface = readColor(colors, DEFAULT_SURFACE) ?? FALLBACK_SURFACE_HEX;
+  const surface = readSurface(colors);
   return [...checkPairs(colors, surface), ...checkTokenColors(theme, surface)];
 }

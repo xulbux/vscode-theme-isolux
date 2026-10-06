@@ -6,7 +6,8 @@
  * from their own palette, which:
  * - suggests every palette color (with its hex value) when typing a color value
  * - flags unknown palette colors, disallowed opacity steps and color scope violations right in the editor
- * - flags unknown `colors` keys and shows their descriptions (based on the `scripts/data/vscode-color-ids.json` snapshot)
+ * - flags unknown `colors` keys and shows their descriptions (read from the installed VS Code, see `colorIds.ts`;
+ *   The build flags unknown keys as well, see `colorKeys.ts`)
  * - flags invalid `tokenColors` structure (unknown properties, invalid `fontStyle`, …)
  *
  * VS Code's own token color schemas are still included as an `if` condition: VS Code's JSON language service
@@ -14,18 +15,36 @@
  * the scope suggestions and descriptions always match the installed VS Code (and extensions), without its hex rules.
  */
 
-import type { ColorDescriptions, Palette } from '../types.ts';
-import { OPACITY_STEPS, SHADES, TRANSPARENT } from './palette.ts';
+import type { ColorDescriptions, ColorScope, Palette } from '../types/index.ts';
+import { escapeRegExp } from '../utils/strings.ts';
+import { CONTRAST_FOREGROUND_KEYS } from './contrast.ts';
 import {
-  CATEGORY_KEY_PREFIXES,
-  type ColorScope,
-  hasScopes,
-  isAllowedInScope,
-  scopeOfColorKey,
-} from './scopes.ts';
+  COLOR_PAIR_SEPARATOR,
+  LIGHTNESS_SEPARATOR,
+  MAX_LIGHTNESS,
+  MIN_LIGHTNESS,
+  OPACITY_STEPS,
+  SHADES,
+  TRANSPARENT,
+} from './palette.ts';
+import { CATEGORY_KEY_PREFIXES, hasScopes, isAllowedInScope, scopeOfColorKey } from './scopes.ts';
 import { BASE_SHADE, TARGET_LIGHTNESS } from './shades.ts';
 
-// ---------------------------------------- CONSTS ----------------------------------------
+// ---------------------------------------- TYPES ----------------------------------------
+
+/** The `$ref` schemas of the color reference definitions a `colors` key can use. */
+interface ColorReferenceSchemas {
+  /** Any palette color (category keys). */
+  anyColor: Record<string, unknown>;
+  /** Any palette color, or a color pair of them (category keys with a contrast pair). */
+  anyColorPair: Record<string, unknown>;
+  /** The palette colors allowed in UI colors. */
+  uiColor: Record<string, unknown>;
+  /** The palette colors allowed in UI colors, or a color pair of them (keys with a contrast pair). */
+  uiColorPair: Record<string, unknown>;
+}
+
+// ---------------------------------------- CONSTS ---------------------------------------
 
 /** VS Code's built-in schemas of `tokenColors` and `semanticTokenColors` (only resolvable inside VS Code). */
 const VSCODE_TEXTMATE_COLORS_SCHEMA = 'vscode://schemas/textmate-colors';
@@ -34,23 +53,40 @@ const VSCODE_TOKEN_STYLING_SCHEMA = 'vscode://schemas/token-styling';
 /** Allowed `fontStyle` values (same pattern as VS Code's TextMate theme schema). */
 const FONT_STYLE_PATTERN = String.raw`^(\s*\b(italic|bold|underline|strikethrough))*\s*$`;
 
+/** JSON schema pattern of an opaque `#RRGGBB` hex color. */
 const HEX_PATTERN = '^#[0-9A-Fa-f]{6}$';
-const NAME_PATTERN = '^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$';
+
+/** JSON schema pattern of a lightness modifier (the allowed range is checked by the build). */
+const LIGHTNESS_PATTERN = String.raw`(?:${escapeRegExp(LIGHTNESS_SEPARATOR)}\d{2,3})?`;
+
+/** JSON schema pattern of a palette alias (another color's name, optionally with a lightness modifier). */
+const ALIAS_PATTERN = `^[a-z][a-z0-9]*(?:-[a-z0-9]+)*${LIGHTNESS_PATTERN}$`;
+
+/** JSON schema pattern of a numeric key (a shade). */
 const NUMERIC_KEY_PATTERN = String.raw`^\d+$`;
 
 // -------------------------------------- INTERNALS --------------------------------------
 
-function escapeRegExp(text: string): string {
-  return text.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`);
-}
-
 /**
  * Build the JSON schema describing a single color reference value, limited to the colors allowed in `scope`.
+ *
+ * @param palette     The flattened palette of the theme source.
+ * @param scope       The color scope the reference is used in.
+ * @param allowPair   Whether a color pair (`<color>|<color>`) is accepted as well.
  */
-function buildColorReferenceSchema(palette: Palette, scope: ColorScope): Record<string, unknown> {
+function buildColorReferenceSchema(
+  palette: Palette,
+  scope: ColorScope,
+  allowPair = false
+): Record<string, unknown> {
   const colors = [...palette].filter(([name]) => isAllowedInScope(name, scope));
   const names = colors.map(([name]) => escapeRegExp(name)).join('|');
   const steps = [...OPACITY_STEPS.keys()];
+  const reference = `(?:${names})${LIGHTNESS_PATTERN}(?:/(?:${steps.join('|')}))?`;
+  const pair = allowPair ? `(?:${escapeRegExp(COLOR_PAIR_SEPARATOR)}${reference})?` : '';
+  const pairHint = allowPair
+    ? `, a color pair ("<color>${COLOR_PAIR_SEPARATOR}<color>", the one with the better contrast is used)`
+    : '';
 
   return {
     defaultSnippets: [
@@ -61,52 +97,67 @@ function buildColorReferenceSchema(palette: Palette, scope: ColorScope): Record<
         markdownDescription: `\`${hex}\``,
       })),
     ],
-    pattern: `^(?:${TRANSPARENT}|(?:${names})(?:/(?:${steps.join('|')}))?)$`,
-    patternErrorMessage: `Expected a palette color allowed here ("<name>" or "<name>/<opacity>") or "${TRANSPARENT}". Allowed opacity steps: ${steps.join(', ')}.`,
+    pattern: `^(?:${TRANSPARENT}|${reference}${pair})$`,
+    patternErrorMessage: `Expected a palette color allowed here ("<name>", "<name>${LIGHTNESS_SEPARATOR}<lightness>", "<name>/<opacity>" or "<name>${LIGHTNESS_SEPARATOR}<lightness>/<opacity>")${pairHint} or "${TRANSPARENT}". Allowed lightness: ${MIN_LIGHTNESS} to ${MAX_LIGHTNESS} (in % of the OKLCH lightness). Allowed opacity steps: ${steps.join(', ')}.`,
     type: 'string',
   };
+}
+
+/**
+ * Get the reference schema for a `colors` key, based on its scope and whether it may use a color pair.
+ */
+function referenceSchemaFor(key: string, refs: ColorReferenceSchemas): Record<string, unknown> {
+  const isPairKey = CONTRAST_FOREGROUND_KEYS.has(key);
+  if (scopeOfColorKey(key) === 'any') {
+    return isPairKey ? refs.anyColorPair : refs.anyColor;
+  }
+  return isPairKey ? refs.uiColorPair : refs.uiColor;
 }
 
 /**
  * Build the JSON schema of the `colors` object.
  * With `knownColors`, every known key gets the color reference of its scope (and its VS Code description)
  * and unknown keys are flagged. Without, any key is accepted (category keys by prefix).
+ * Only the foreground keys of `CONTRAST_PAIRS` accept color pairs.
  */
 function buildColorsSchema(
-  anyColor: Record<string, unknown>,
-  uiColor: Record<string, unknown>,
+  refs: ColorReferenceSchemas,
   knownColors: ColorDescriptions | undefined
 ): Record<string, unknown> {
   if (knownColors === undefined) {
     const categoryPattern = `^(?:${CATEGORY_KEY_PREFIXES.map((prefix) => escapeRegExp(prefix)).join('|')})`;
     return {
-      additionalProperties: uiColor,
-      patternProperties: { [categoryPattern]: anyColor },
+      additionalProperties: refs.uiColor,
+      patternProperties: { [categoryPattern]: refs.anyColor },
+      properties: Object.fromEntries(
+        [...CONTRAST_FOREGROUND_KEYS].map((key) => [key, referenceSchemaFor(key, refs)])
+      ),
       type: 'object',
     };
   }
 
+  // Draft-07 ignores every keyword next to a `$ref` (and so does VS Code's hover);
+  // The reference is wrapped in an `allOf`, so the description is shown.
   return {
     additionalProperties: false,
     properties: Object.fromEntries(
-      Object.entries(knownColors).map(([id, description]) => [
-        id,
-        {
-          ...(scopeOfColorKey(id) === 'any' ? anyColor : uiColor),
-          ...(description && { description }),
-        },
-      ])
+      Object.entries(knownColors).map(([id, description]) => {
+        const reference = referenceSchemaFor(id, refs);
+        return [id, description ? { allOf: [reference], description } : reference];
+      })
     ),
     type: 'object',
   };
 }
 
-// ---------------------------------------- PUBLIC ----------------------------------------
+// -------------------------------------- PUBLIC API -------------------------------------
 
 /**
  * Generate the JSON schema for a theme source that uses the palette system.
- * @param themeFile    File name of the theme source (only used for the schema title).
- * @param knownColors  All valid `colors` keys with their descriptions, or `undefined` to accept any key.
+ *
+ * @param themeFile     File name of the theme source (only used for the schema title).
+ * @param palette       The flattened palette of the theme source.
+ * @param knownColors   All valid `colors` keys with their descriptions, or `undefined` to accept any key.
  */
 export function generateSourceSchema(
   themeFile: string,
@@ -115,7 +166,9 @@ export function generateSourceSchema(
 ): Record<string, unknown> {
   const scoped = hasScopes(palette);
   const anyColor = { $ref: '#/definitions/colorReference' };
+  const anyColorPair = { $ref: '#/definitions/colorPairReference' };
   const uiColor = scoped ? { $ref: '#/definitions/uiColorReference' } : anyColor;
+  const uiColorPair = scoped ? { $ref: '#/definitions/uiColorPairReference' } : anyColorPair;
   const syntaxColor = scoped ? { $ref: '#/definitions/syntaxColorReference' } : anyColor;
   const fontStyle = {
     pattern: FONT_STYLE_PATTERN,
@@ -152,9 +205,11 @@ export function generateSourceSchema(
   return {
     $schema: 'http://json-schema.org/draft-07/schema#',
     definitions: {
+      colorPairReference: buildColorReferenceSchema(palette, 'any', true),
       colorReference: buildColorReferenceSchema(palette, 'any'),
       ...(scoped && {
         syntaxColorReference: buildColorReferenceSchema(palette, 'syntax'),
+        uiColorPairReference: buildColorReferenceSchema(palette, 'ui', true),
         uiColorReference: buildColorReferenceSchema(palette, 'ui'),
       }),
       paletteGroup: {
@@ -171,7 +226,7 @@ export function generateSourceSchema(
       paletteValue: {
         anyOf: [
           { pattern: HEX_PATTERN, type: 'string' },
-          { pattern: NAME_PATTERN, type: 'string' },
+          { pattern: ALIAS_PATTERN, type: 'string' },
         ],
       },
       shadeScale: {
@@ -185,7 +240,7 @@ export function generateSourceSchema(
       },
     },
     description: 'GENERATED by `scripts/build.ts` – do not edit.',
-    // Only for suggestions and descriptions – problems of an `if` schema are never reported.
+    // Only for suggestions and descriptions; Problems of an `if` schema are never reported.
     // `colors` is left out: VS Code's color schema only accepts hex values (or `default`), so for a palette
     // reference the hover would show the description of its `default` option instead of the color's own.
     if: {
@@ -196,7 +251,7 @@ export function generateSourceSchema(
     },
     properties: {
       $schema: { type: 'string' },
-      colors: buildColorsSchema(anyColor, uiColor, knownColors),
+      colors: buildColorsSchema({ anyColor, anyColorPair, uiColor, uiColorPair }, knownColors),
       name: { type: 'string' },
       palette: {
         additionalProperties: {
@@ -206,12 +261,12 @@ export function generateSourceSchema(
               pattern: HEX_PATTERN,
               type: 'string',
             },
-            { pattern: NAME_PATTERN, type: 'string' },
+            { pattern: ALIAS_PATTERN, type: 'string' },
             { $ref: '#/definitions/shadeScale' },
             { $ref: '#/definitions/paletteGroup' },
           ],
         },
-        markdownDescription: `Colors referenced by name in \`colors\`, \`tokenColors\` and \`semanticTokenColors\`.\n\n- A hex color is a base color: the whole shade scale is generated from it, with shade \`${BASE_SHADE}\` set to the base. Every base must have the OKLCH lightness of shade \`${BASE_SHADE}\` (${TARGET_LIGHTNESS.get(BASE_SHADE)}), so all families look equally bright; the base decides the hue and saturation of the whole scale.\n- An object with numeric keys is a manual shade scale and must define every shade (\`${[...SHADES].join('`, `')}\`).\n- Other objects are groups of named colors (e.g., \`ansi\`, \`ui\`), whose values are \`#RRGGBB\` hex colors or the name of another palette color. Nested keys are joined with \`-\`.\n\nIf a \`ui\` group is defined, \`colors\` may only use \`ui-*\`, \`gray-*\` and \`ansi-*\` (except category keys like \`symbolIcon.*\`), and token colors may not use \`ui-*\`.`,
+        markdownDescription: `Colors referenced by name in \`colors\`, \`tokenColors\` and \`semanticTokenColors\`.\n\n- A hex color is a base color: the whole shade scale is generated from it, with shade \`${BASE_SHADE}\` set to the base. Every base must have the OKLCH lightness of shade \`${BASE_SHADE}\` (${TARGET_LIGHTNESS.get(BASE_SHADE)}), so all families look equally bright; the base decides the hue and saturation of the whole scale.\n- An object with numeric keys is a manual shade scale and must define every shade (\`${[...SHADES].join('`, `')}\`).\n- Other objects are groups of named colors (e.g., \`ansi\`, \`ui\`), whose values are \`#RRGGBB\` hex colors or the name of another palette color, optionally with a lightness modifier (e.g., \`"bg-hover": "ui-accent-bg${LIGHTNESS_SEPARATOR}94"\` – ${MIN_LIGHTNESS} to ${MAX_LIGHTNESS} % of its OKLCH lightness, for subtle variants in between the shades). Nested keys are joined with \`-\`.\n\nIf a \`ui\` group is defined, \`colors\` may only use \`ui-*\`, \`gray-*\` and \`ansi-*\` (except category keys like \`symbolIcon.*\`), and token colors may not use \`ui-*\`.`,
         propertyNames: { not: { pattern: NUMERIC_KEY_PATTERN } },
         type: 'object',
       },

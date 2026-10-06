@@ -1,5 +1,5 @@
 /**
- * Build – compiles the theme sources in `theme/` into the VS Code themes in `dist/`.
+ * Build – Compiles the theme sources in `theme/` into the VS Code themes in `dist/`.
  *
  * Usage:
  *   node scripts/build.ts            Build all themes once (also runs as `vscode:prepublish`).
@@ -8,34 +8,41 @@
  * The themes to build are read from `contributes.themes` in `package.json`:
  * every `./dist/<name>.json` theme path is built from `./theme/<name>.jsonc` (or `./theme/<name>.json`).
  * For sources with a `palette`, a JSON schema is also written to `dist/<name>.schema.json`.
- * If `scripts/data/vscode-color-ids.json` exists (see `scripts/updateColorIds.ts`), the schema flags unknown color keys.
- * Palette themes are also checked for low-contrast color pairs (see `core/contrast.ts`), reported as warnings.
+ * The known color keys are read from the locally installed VS Code on every build (see `core/colorIds.ts`), so unknown
+ * keys are flagged (in the schema and as build warnings) for exactly that VS Code version. Without an installation,
+ * any key is accepted. Palette themes are also checked for low-contrast color pairs (see `core/contrast.ts`).
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { readVsCodeColorIds } from './core/colorIds.ts';
+import { checkColorKeys } from './core/colorKeys.ts';
 import { checkContrast } from './core/contrast.ts';
 import { generateSourceSchema } from './core/schema.ts';
 import { compileTheme } from './core/theme.ts';
-import type { ColorDescriptions, ColorIdSnapshot } from './types.ts';
+import type { ColorDescriptions } from './types/index.ts';
 import { parseJsonc } from './utils/jsonc.ts';
-import { logError, logInfo, logSuccess, logWarning } from './utils/logger.ts';
+import { logError, logInfo, logSuccess, logWarn } from './utils/logger.ts';
 
-// ---------------------------------------- CONSTS ----------------------------------------
+// ---------------------------------------- TYPES ----------------------------------------
+
+/** The parts of `package.json` relevant to the build. */
+interface Manifest {
+  /** The contributed themes, whose paths point to the built themes in `dist/`. */
+  contributes?: { themes?: { path?: string }[] };
+}
+
+// ---------------------------------------- CONSTS ---------------------------------------
 
 const ROOT_DIR = path.resolve(import.meta.dirname, '..');
 const SOURCE_DIR = path.join(ROOT_DIR, 'theme');
 const DIST_DIR = path.join(ROOT_DIR, 'dist');
-const COLOR_IDS_FILE = path.join(ROOT_DIR, 'scripts', 'data', 'vscode-color-ids.json');
-const WATCH_DEBOUNCE_MS = 100;
+
+/** How long to wait after the last change of a source file before rebuilding it (ms). */
+const WATCH_DEBOUNCE = 100;
 
 /** Accepted source file extensions, in order of precedence. */
 const SOURCE_EXTENSIONS = ['.jsonc', '.json'] as const;
-
-/** The parts of `package.json` relevant to the build. */
-interface Manifest {
-  contributes?: { themes?: { path?: string }[] };
-}
 
 // -------------------------------------- INTERNALS --------------------------------------
 
@@ -92,17 +99,24 @@ function writeJson(file: string, data: unknown): void {
 }
 
 /**
- * Read the known `colors` keys (with their descriptions) from the snapshot written by `scripts/updateColorIds.ts`.
- * @returns The color descriptions, or `undefined` if there is no snapshot (any key is accepted then).
+ * Read the known `colors` keys (with their descriptions) from the locally installed VS Code.
+ * @returns The color descriptions, or `undefined` if they can't be read (any key is accepted then).
  */
 function readKnownColors(): ColorDescriptions | undefined {
-  if (!fs.existsSync(COLOR_IDS_FILE)) {
+  try {
+    const { colors, extensions, vscodeVersion } = readVsCodeColorIds();
+    const fromExtensions =
+      extensions.length > 0 ? `, incl. ${extensions.length} installed extensions` : '';
     logInfo(
-      'No color ID snapshot found – run "pnpm run update:color-ids" to flag unknown color keys.'
+      `Known color keys: ${Object.keys(colors).length} (VS Code ${vscodeVersion}${fromExtensions}).`
+    );
+    return colors;
+  } catch (error) {
+    logWarn(
+      `Unknown color keys can't be flagged – ${error instanceof Error ? error.message : String(error)}`
     );
     return undefined;
   }
-  return (JSON.parse(fs.readFileSync(COLOR_IDS_FILE, 'utf8')) as ColorIdSnapshot).colors;
 }
 
 /**
@@ -145,11 +159,13 @@ function buildTheme(name: string, knownColors: ColorDescriptions | undefined): b
       : `${sourceFile} (copied – no palette)`
   );
 
-  // Only palette themes are checked – the unmigrated themes are copied as they are.
-  const warnings = palette ? checkContrast(theme) : [];
+  // Only palette themes are checked; The un-migrated themes are copied as they are.
+  const warnings = palette
+    ? [...(knownColors ? checkColorKeys(theme, knownColors) : []), ...checkContrast(theme)]
+    : [];
   if (warnings.length > 0) {
-    logWarning(
-      `${sourceFile}: ${warnings.length} contrast warning${warnings.length === 1 ? '' : 's'}`,
+    logWarn(
+      `${sourceFile}: ${warnings.length} warning${warnings.length === 1 ? '' : 's'}`,
       warnings
     );
   }
@@ -186,14 +202,14 @@ function watch(names: readonly string[], knownColors: ColorDescriptions | undefi
       setTimeout(() => {
         timers.delete(name);
         buildTheme(name, knownColors);
-      }, WATCH_DEBOUNCE_MS)
+      }, WATCH_DEBOUNCE)
     );
   });
 
   logInfo('Watching for changes…');
 }
 
-// ----------------------------------------- MAIN -----------------------------------------
+// ----------------------------------------- MAIN ----------------------------------------
 
 function main(): void {
   const names = getThemeNames();

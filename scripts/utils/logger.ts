@@ -6,7 +6,7 @@
  */
 
 import { styleText } from 'node:util';
-import type { BuildIssue } from '../types.ts';
+import type { BuildIssue } from '../types/index.ts';
 
 function timestamp(): string {
   return styleText('gray', `[${new Date().toLocaleTimeString()}]`);
@@ -29,19 +29,19 @@ export function logSuccess(message: string): void {
 }
 
 /**
- * A failure that prevents a theme from being built.
- * @param issues  Optional list of individual problems, each printed on its own line.
+ * A problem that doesn't prevent a theme from being built, but should still be fixed.
+ * @param issues   Optional list of individual problems, each printed on its own line.
  */
-export function logError(message: string, issues: readonly BuildIssue[] = []): void {
-  process.stderr.write(`${timestamp()} ${styleText('red', '✗')} ${message}\n`);
+export function logWarn(message: string, issues: readonly BuildIssue[] = []): void {
+  process.stderr.write(`${timestamp()} ${styleText('yellow', '!')} ${message}\n`);
   logIssues(issues);
 }
 
 /**
- * A problem that doesn't prevent a theme from being built, but should still be fixed.
- * @param issues  Optional list of individual problems, each printed on its own line.
+ * A failure that prevents a theme from being built.
+ * @param issues   Optional list of individual problems, each printed on its own line.
  */
-export function logWarning(message: string, issues: readonly BuildIssue[] = []): void {
-  process.stderr.write(`${timestamp()} ${styleText('yellow', '!')} ${message}\n`);
+export function logError(message: string, issues: readonly BuildIssue[] = []): void {
+  process.stderr.write(`${timestamp()} ${styleText('red', '✗')} ${message}\n`);
   logIssues(issues);
 }

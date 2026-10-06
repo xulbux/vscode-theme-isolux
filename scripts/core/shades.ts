@@ -1,12 +1,12 @@
 /**
- * Shade generator – derives a full Tailwind-like shade scale (`50` – `950`) from a single base color.
+ * Shade generator – Derives a full Tailwind-like shade scale (`50` – `950`) from a single base color.
  *
  * The base color becomes shade `BASE_SHADE` (400) exactly. The other shades are placed in OKLCH:
  * - Lightness: every shade uses its `TARGET_LIGHTNESS`. Base colors must have the target lightness of
  *   `BASE_SHADE` as well (see `validateBaseColor`), so the same shade looks equally bright in every color family.
- * - Saturation and hue: taken from Tailwind's own color scales (`scripts/data/tailwind-colors.json`). For every
+ * - Saturation and hue: taken from Tailwind's own color scales (the `tailwindcss` dev dependency). For every
  *   Tailwind family, it's measured how each shade's relative saturation (its chroma relative to the most colorful
- *   color sRGB can show at its lightness and hue) and hue differ from its `400` shade. A base color follows the
+ *   color the gamut can show at its lightness and hue) and hue differ from its `400` shade. A base color follows the
  *   profile of the Tailwind families closest to its hue (interpolated between the two neighbors), applied to
  *   its own relative saturation and hue. This way:
  *   - a more or less saturated base makes the whole scale more or less saturated,
@@ -14,18 +14,67 @@
  *     turn warmer towards `950` instead of olive),
  *   - the shades never leave the sRGB gamut.
  *
+ * Tailwind's (v4) palette is designed for the wide Display P3 gamut, so many of its colors can't be shown in sRGB.
+ * Its saturation is therefore measured relative to P3 (`TAILWIND_GAMUT`), but applied relative to sRGB. This scales
+ * P3 down to sRGB proportionally instead of clipping it, so the shape of every scale is kept.
+ *
  * `400` is the base (instead of Tailwind's `500`), because it's the shade most color references use:
  * on a dark background, syntax and UI accent colors need to be as bright as `400`.
  */
 
-import tailwindColors from '../data/tailwind-colors.json' with { type: 'json' };
-import type { TailwindColorSnapshot } from '../types.ts';
-import { hexToOklch, maxChroma, type Oklch, oklchToHex } from '../utils/color.ts';
+import tailwindColors from 'tailwindcss/colors';
+import type { Gamut, Oklch } from '../types/index.ts';
+import { hexToOklch, maxChroma, oklchToHex, parseOklch } from '../utils/color.ts';
 
-// ---------------------------------------- CONSTS ----------------------------------------
+// ---------------------------------------- TYPES ----------------------------------------
+
+/** A chromatic Tailwind color family (e.g., `red`). */
+type TailwindFamily = (typeof TAILWIND_FAMILIES)[number];
+
+/** How a shade differs from the `BASE_SHADE` of its scale. */
+interface ShadeProfile {
+  /** Relative saturation, as a multiple of the base's relative saturation. */
+  saturation: number;
+  /** Hue difference to the base, in degrees. */
+  hueShift: number;
+}
+
+/** The shade profiles of a Tailwind color family, located by the hue of its `BASE_SHADE`. */
+interface FamilyProfile {
+  /** OKLCH hue of the family's `BASE_SHADE`, in degrees. */
+  hue: number;
+  /** The profile of every shade, by shade. */
+  shades: ReadonlyMap<number, ShadeProfile>;
+}
+
+// ---------------------------------------- CONSTS ---------------------------------------
 
 /** The shade that is set to the base color itself. */
 export const BASE_SHADE = 400;
+
+/** Tailwind's chromatic color families, used as the reference (the neutral gray scales are left out). */
+const TAILWIND_FAMILIES = [
+  'red',
+  'orange',
+  'amber',
+  'yellow',
+  'lime',
+  'green',
+  'emerald',
+  'teal',
+  'cyan',
+  'sky',
+  'blue',
+  'indigo',
+  'violet',
+  'purple',
+  'fuchsia',
+  'pink',
+  'rose',
+] as const;
+
+/** The gamut Tailwind's palette is designed for; Its saturation is measured relative to it. */
+const TAILWIND_GAMUT: Gamut = 'p3';
 
 /**
  * OKLCH lightness of every shade, shared by all generated color families.
@@ -51,20 +100,6 @@ export const TARGET_LIGHTNESS: ReadonlyMap<number, number> = new Map([
  */
 const BASE_LIGHTNESS_TOLERANCE = 0.002;
 
-/** How a shade differs from the `BASE_SHADE` of its scale. */
-interface ShadeProfile {
-  /** Relative saturation, as a multiple of the base's relative saturation. */
-  saturation: number;
-  /** Hue difference to the base, in degrees. */
-  hueShift: number;
-}
-
-/** The shade profiles of a Tailwind color family, located by the hue of its `BASE_SHADE`. */
-interface FamilyProfile {
-  hue: number;
-  shades: ReadonlyMap<number, ShadeProfile>;
-}
-
 // -------------------------------------- INTERNALS --------------------------------------
 
 function targetLightness(shade: number): number {
@@ -76,10 +111,15 @@ function targetLightness(shade: number): number {
 }
 
 /**
- * Relative saturation of a color: its chroma relative to the highest chroma sRGB allows at its lightness and hue.
+ * Relative saturation of a color: its chroma relative to the highest chroma `gamut` allows at its lightness and hue.
+ *
+ * @param l       OKLCH lightness.
+ * @param c       OKLCH chroma.
+ * @param h       OKLCH hue, in degrees.
+ * @param gamut   The gamut to measure against (defaults to sRGB).
  */
-function relativeSaturation(l: number, c: number, h: number): number {
-  return Math.min(1, c / Math.max(maxChroma(l, h), Number.EPSILON));
+function relativeSaturation(l: number, c: number, h: number, gamut: Gamut = 'srgb'): number {
+  return Math.min(1, c / Math.max(maxChroma(l, h, gamut), Number.EPSILON));
 }
 
 /** Signed difference from hue `from` to hue `to`, in degrees (`-180` to `180`). */
@@ -94,46 +134,40 @@ function normalizeHue(hue: number): number {
 
 /**
  * Get a shade of a Tailwind color family in OKLCH.
- * @throws {Error} If the shade is missing.
+ * @throws {Error} If the shade is missing or isn't an `oklch()` color.
  */
-function tailwindColor(
-  family: string,
-  scale: Readonly<Record<string, string>>,
-  shade: number
-): Oklch {
-  const hex = scale[String(shade)];
-  if (hex === undefined) {
+function tailwindColor(family: TailwindFamily, shade: number): Oklch {
+  const scale: Readonly<Record<string, string | undefined>> = tailwindColors[family];
+  const value = scale[String(shade)];
+  if (value === undefined) {
     throw new Error(
-      `Tailwind color "${family}-${shade}" is missing – run "pnpm run update:tailwind-colors".`
+      `Tailwind color "${family}-${shade}" is missing – check the "tailwindcss" dev dependency.`
     );
   }
-  return hexToOklch(hex);
+  return parseOklch(value);
 }
 
 /**
- * Measure the shade profiles of every Tailwind color family, sorted by hue.
+ * Measure the shade profiles of every Tailwind color family (relative to `TAILWIND_GAMUT`), sorted by hue.
  * @throws {Error} If a family is missing a shade.
  */
 function buildFamilyProfiles(): FamilyProfile[] {
-  const { families } = tailwindColors as TailwindColorSnapshot;
-
-  return Object.entries(families)
-    .map(([family, scale]) => {
-      const base = tailwindColor(family, scale, BASE_SHADE);
-      const baseSaturation = relativeSaturation(base.l, base.c, base.h);
-      const shades = new Map(
-        [...TARGET_LIGHTNESS.keys()].map((shade) => {
-          const color = tailwindColor(family, scale, shade);
-          const profile: ShadeProfile = {
-            hueShift: hueDelta(base.h, color.h),
-            saturation: relativeSaturation(color.l, color.c, color.h) / baseSaturation,
-          };
-          return [shade, profile] as const;
-        })
-      );
-      return { hue: base.h, shades };
-    })
-    .toSorted((a, b) => a.hue - b.hue);
+  return TAILWIND_FAMILIES.map((family) => {
+    const base = tailwindColor(family, BASE_SHADE);
+    const baseSaturation = relativeSaturation(base.l, base.c, base.h, TAILWIND_GAMUT);
+    const shades = new Map(
+      [...TARGET_LIGHTNESS.keys()].map((shade) => {
+        const color = tailwindColor(family, shade);
+        const profile: ShadeProfile = {
+          hueShift: hueDelta(base.h, color.h),
+          saturation:
+            relativeSaturation(color.l, color.c, color.h, TAILWIND_GAMUT) / baseSaturation,
+        };
+        return [shade, profile] as const;
+      })
+    );
+    return { hue: base.h, shades };
+  }).toSorted((a, b) => a.hue - b.hue);
 }
 
 const FAMILY_PROFILES = buildFamilyProfiles();
@@ -159,7 +193,7 @@ function profileForHue(hue: number, shade: number): ShadeProfile {
   };
 }
 
-// ---------------------------------------- PUBLIC ----------------------------------------
+// -------------------------------------- PUBLIC API -------------------------------------
 
 /**
  * Check whether a color can be used as a base color (it must have the target lightness of `BASE_SHADE`).

@@ -1,31 +1,41 @@
 /**
- * Update color IDs – snapshots every theme color ID known to the locally installed VS Code,
- * together with its description, into `scripts/data/vscode-color-ids.json`.
+ * Color IDs – Reads every theme color ID known to the locally installed VS Code, together with its description.
  *
- * Usage:
- *   node scripts/updateColorIds.ts
- *
- * The build uses the snapshot to flag unknown keys in `colors` and to show each key's description
- * on hover (VS Code's own schema can't be used for that, as it also requires hex values). Collected from:
+ * The build uses them to flag unknown keys in `colors` and to show each key's description on hover
+ * (VS Code's own schema can't be used for that, as it also requires hex values). Collected from:
  * - the workbench bundle of the VS Code installation (core colors)
  * - the built-in extensions of that installation (e.g., `gitDecoration.*`)
  * - the user's installed extensions in `~/.vscode/extensions`
  *
- * The VS Code installation is detected automatically; set `VSCODE_APP_ROOT` to the
- * `resources/app` folder of an installation to use a specific one.
+ * They're read on every build (≈ 0.3 s), so they always match the installed VS Code version.
+ * The VS Code installation is detected automatically (see `findAppRoot`).
  */
 
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { ColorIdSnapshot } from './types.ts';
-import { logError, logInfo, logSuccess } from './utils/logger.ts';
+import type { VsCodeColorIds } from '../types/index.ts';
+import { listDirectories, readJson } from '../utils/fs.ts';
+import { escapeRegExp } from '../utils/strings.ts';
+import { findAppRoot, readVsCodeVersion, WORKBENCH_BUNDLE } from '../utils/vscode.ts';
 
-// ---------------------------------------- CONSTS ----------------------------------------
+// ---------------------------------------- TYPES ----------------------------------------
 
-const ROOT_DIR = path.resolve(import.meta.dirname, '..');
-const OUTPUT_FILE = path.join(ROOT_DIR, 'scripts', 'data', 'vscode-color-ids.json');
-const WORKBENCH_BUNDLE = path.join('out', 'vs', 'workbench', 'workbench.desktop.main.js');
+/** The parts of an extension's `package.json` relevant for color contributions. */
+interface ExtensionManifest {
+  /** The extension's name (without publisher). */
+  name?: string;
+  /** The extension's publisher ID. */
+  publisher?: string;
+  /** The contributed theme colors. */
+  contributes?: { colors?: { id?: unknown; description?: unknown }[] };
+}
+
+/** Color IDs mapped to their description (empty if none was found). */
+type DescriptionMap = Map<string, string>;
+
+// ---------------------------------------- CONSTS ---------------------------------------
+
 /** The English UI strings of the bundle, which references them by index (`localize(<index>, null)`). */
 const NLS_MESSAGES = path.join('out', 'nls.messages.json');
 const USER_EXTENSIONS_DIR = path.join(os.homedir(), '.vscode', 'extensions');
@@ -39,97 +49,30 @@ const MIN_CORE_COLOR_COUNT = 500;
 /** Prefix of the terminal ANSI colors, which are registered in a loop (named by the rest of the ID). */
 const TERMINAL_ANSI_PREFIX = 'terminal.ansi';
 
-/** A minified `localize(<index>, null, …args)` call. */
-const LOCALIZE_CALL_PATTERN = /^[\w$]+\((?<index>\d+),null(?:,.*)?\)$/su;
-/** A `{0}`-style placeholder in a localized message. */
-const PLACEHOLDER_PATTERN = /\{(?<index>\d+)\}/gu;
-/** A `%key%` reference to an extension's `package.nls.json`. */
-const NLS_KEY_PATTERN = /^%(?<key>.+)%$/u;
+// ------------------------------------ REGEX PATTERNS -----------------------------------
 
-/** The parts of an extension's `package.json` relevant for color contributions. */
-interface ExtensionManifest {
-  name?: string;
-  publisher?: string;
-  contributes?: { colors?: { id?: unknown; description?: unknown }[] };
-}
+/** Matches a single character of a (minified) JavaScript identifier. */
+const IDENTIFIER_CHAR_RX = /[\w$]/;
 
-/** Color IDs mapped to their description (empty if none was found). */
-type DescriptionMap = Map<string, string>;
+/** Matches a minified `localize(<index>, null, …args)` call. */
+const LOCALIZE_CALL_RX = /^[\w$]+\((?<index>\d+),null(?:,.*)?\)$/s;
+
+/** Matches a `{0}`-style placeholder in a localized message. */
+const PLACEHOLDER_RX = /\{(?<index>\d+)\}/g;
+
+/** Matches a `%key%` reference to an extension's `package.nls.json`. */
+const NLS_KEY_RX = /^%(?<key>.+)%$/;
+
+/** Matches an entry of the terminal ANSI color map (`"terminal.ansi…":{index:`). */
+const TERMINAL_ANSI_ENTRY_RX = /"(?<id>terminal\.ansi\w+)":\{index:/g;
 
 // -------------------------------------- INTERNALS --------------------------------------
-
-function escapeRegExp(text: string): string {
-  return text.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`);
-}
-
-function readJson(file: string): unknown {
-  return JSON.parse(fs.readFileSync(file, 'utf8'));
-}
-
-function listDirectories(dir: string): string[] {
-  if (!fs.existsSync(dir)) {
-    return [];
-  }
-  return fs
-    .readdirSync(dir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => path.join(dir, entry.name));
-}
-
-function isAppRoot(dir: string): boolean {
-  return fs.existsSync(path.join(dir, WORKBENCH_BUNDLE));
-}
 
 /** Add a color, keeping the first non-empty description if it was already added. */
 function addColor(colors: DescriptionMap, id: string, description: string): void {
   if (!colors.get(id)) {
     colors.set(id, description);
   }
-}
-
-/**
- * Get the platform's default VS Code installation folders.
- */
-function getInstallDirs(): string[] {
-  if (process.platform === 'win32') {
-    return [
-      path.join(process.env.ProgramFiles ?? String.raw`C:\Program Files`, 'Microsoft VS Code'),
-      path.join(process.env.LOCALAPPDATA ?? '', 'Programs', 'Microsoft VS Code'),
-    ];
-  }
-  if (process.platform === 'darwin') {
-    return ['/Applications/Visual Studio Code.app/Contents'];
-  }
-  return ['/usr/share/code', '/opt/visual-studio-code', '/snap/code/current/usr/share/code'];
-}
-
-/**
- * Find the `resources/app` folder of the VS Code installation.
- * Newer Windows installations nest it in a versioned folder (`<install>/<commit>/resources/app`),
- * in which case the most recently modified one is used.
- * @throws {Error} If no installation is found.
- */
-function findAppRoot(): string {
-  const override = process.env.VSCODE_APP_ROOT;
-  if (override !== undefined) {
-    if (!isAppRoot(override)) {
-      throw new Error(`VSCODE_APP_ROOT "${override}" doesn't contain "${WORKBENCH_BUNDLE}".`);
-    }
-    return override;
-  }
-
-  for (const installDir of getInstallDirs()) {
-    const candidates = [installDir, ...listDirectories(installDir)]
-      .map((dir) => path.join(dir, 'resources', 'app'))
-      .filter((dir) => isAppRoot(dir))
-      .toSorted((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
-    if (candidates.length > 0) {
-      return candidates[0];
-    }
-  }
-  throw new Error(
-    'No VS Code installation found – set VSCODE_APP_ROOT to its "resources/app" folder.'
-  );
 }
 
 /**
@@ -194,7 +137,7 @@ function parseStringLiteral(code: string): string | undefined {
 /** Replace the `{0}`-style placeholders of a localized message (unknown arguments are left as they are). */
 function formatMessage(message: string, args: readonly (string | undefined)[]): string {
   return message.replaceAll(
-    PLACEHOLDER_PATTERN,
+    PLACEHOLDER_RX,
     (placeholder, index: string) => args[Number(index)] ?? placeholder
   );
 }
@@ -207,7 +150,7 @@ function resolveDescription(arg: string | undefined, messages: readonly string[]
   if (arg === undefined) {
     return '';
   }
-  const index = LOCALIZE_CALL_PATTERN.exec(arg)?.groups?.index;
+  const index = LOCALIZE_CALL_RX.exec(arg)?.groups?.index;
   if (index === undefined) {
     return parseStringLiteral(arg) ?? '';
   }
@@ -222,14 +165,24 @@ function resolveDescription(arg: string | undefined, messages: readonly string[]
  * @throws {Error} If the function isn't found.
  */
 function findRegisterColor(bundle: string): string {
-  // The anchor colors are registered through `registerColor`, so the most common function name
-  // in front of them is the minified name of `registerColor`.
+  // The anchor colors are registered through `registerColor`, so the most common function name in front of them
+  // is the minified name of `registerColor`; Searched with `indexOf`, as a regex over the whole bundle is slow.
   const counts = new Map<string, number>();
   for (const id of ANCHOR_COLOR_IDS) {
-    const anchorPattern = new RegExp(String.raw`(?<fn>[\w$]+)\("${escapeRegExp(id)}",`, 'gu');
-    for (const match of bundle.matchAll(anchorPattern)) {
-      const fn = match.groups?.fn ?? '';
-      counts.set(fn, (counts.get(fn) ?? 0) + 1);
+    const needle = `(${JSON.stringify(id)},`;
+    for (
+      let index = bundle.indexOf(needle);
+      index !== -1;
+      index = bundle.indexOf(needle, index + 1)
+    ) {
+      let start = index;
+      while (start > 0 && IDENTIFIER_CHAR_RX.test(bundle[start - 1])) {
+        start -= 1;
+      }
+      const fn = bundle.slice(start, index);
+      if (fn !== '') {
+        counts.set(fn, (counts.get(fn) ?? 0) + 1);
+      }
     }
   }
   const registerColor = [...counts].toSorted(([, a], [, b]) => b - a)[0]?.[0];
@@ -253,7 +206,7 @@ function extractCoreColors(appRoot: string): DescriptionMap {
   // `registerColor("<id>", <defaults>, <description>, …)`
   const registerPattern = new RegExp(
     String.raw`(?<![\w$.])${escapeRegExp(registerColor)}\("(?<id>[A-Za-z][\w-]*(?:\.[\w-]+)*)",`,
-    'gu'
+    'g'
   );
   for (const match of bundle.matchAll(registerPattern)) {
     const args = splitArguments(bundle, match.index + match[0].length);
@@ -263,12 +216,11 @@ function extractCoreColors(appRoot: string): DescriptionMap {
   // The terminal ANSI colors are registered in a loop over a `{ "terminal.ansi…": { index, defaults } }` map,
   // with a shared description that gets the color name (the rest of the ID) as its argument.
   const ansiMessageIndex = new RegExp(
-    String.raw`${escapeRegExp(registerColor)}\([\w$]+,[\w$]+\.defaults,[\w$]+\((?<index>\d+),null,`,
-    'u'
+    String.raw`${escapeRegExp(registerColor)}\([\w$]+,[\w$]+\.defaults,[\w$]+\((?<index>\d+),null,`
   ).exec(bundle)?.groups?.index;
   const ansiMessage =
     ansiMessageIndex === undefined ? '' : (messages.at(Number(ansiMessageIndex)) ?? '');
-  for (const match of bundle.matchAll(/"(?<id>terminal\.ansi\w+)":\{index:/gu)) {
+  for (const match of bundle.matchAll(TERMINAL_ANSI_ENTRY_RX)) {
     const id = match.groups?.id ?? '';
     addColor(colors, id, formatMessage(ansiMessage, [id.slice(TERMINAL_ANSI_PREFIX.length)]));
   }
@@ -290,7 +242,7 @@ function resolveExtensionDescription(
   if (typeof description !== 'string') {
     return '';
   }
-  const key = NLS_KEY_PATTERN.exec(description)?.groups?.key;
+  const key = NLS_KEY_RX.exec(description)?.groups?.key;
   if (key === undefined) {
     return description;
   }
@@ -335,40 +287,26 @@ function extractExtensionColors(extensionsDir: string): {
   return { colors, extensions: [...extensions] };
 }
 
-// ----------------------------------------- MAIN -----------------------------------------
+// -------------------------------------- PUBLIC API -------------------------------------
 
-function main(): void {
-  try {
-    const appRoot = findAppRoot();
-    const { version } = readJson(path.join(appRoot, 'package.json')) as { version: string };
-    logInfo(`Reading VS Code ${version} from "${appRoot}"…`);
+/**
+ * Read every theme color ID (with its description) known to the locally installed VS Code and extensions.
+ * @throws {Error} If no VS Code installation is found or its workbench bundle format isn't recognized.
+ */
+export function readVsCodeColorIds(): VsCodeColorIds {
+  const appRoot = findAppRoot();
+  const core = extractCoreColors(appRoot);
+  const builtIn = extractExtensionColors(path.join(appRoot, 'extensions'));
+  const user = extractExtensionColors(USER_EXTENSIONS_DIR);
 
-    const core = extractCoreColors(appRoot);
-    const builtIn = extractExtensionColors(path.join(appRoot, 'extensions'));
-    const user = extractExtensionColors(USER_EXTENSIONS_DIR);
-
-    const colors: DescriptionMap = new Map();
-    for (const [id, description] of [...core, ...builtIn.colors, ...user.colors]) {
-      addColor(colors, id, description);
-    }
-    const missing = [...colors.values()].filter((description) => !description).length;
-
-    const snapshot: ColorIdSnapshot = {
-      colors: Object.fromEntries([...colors].toSorted(([a], [b]) => (a < b ? -1 : 1))),
-      description: 'GENERATED by `scripts/updateColorIds.ts` – do not edit.',
-      extensions: user.extensions.toSorted(),
-      vscodeVersion: version,
-    };
-
-    fs.mkdirSync(path.dirname(OUTPUT_FILE), { recursive: true });
-    fs.writeFileSync(OUTPUT_FILE, `${JSON.stringify(snapshot, undefined, 2)}\n`);
-    logSuccess(
-      `${colors.size} color IDs (${core.size} core, ${builtIn.colors.size} from built-in extensions, ${user.colors.size} from ${user.extensions.length} installed extensions, ${missing} without description) → ${path.relative(ROOT_DIR, OUTPUT_FILE)}`
-    );
-  } catch (error) {
-    logError(error instanceof Error ? error.message : String(error));
-    process.exitCode = 1;
+  const colors: DescriptionMap = new Map();
+  for (const [id, description] of [...core, ...builtIn.colors, ...user.colors]) {
+    addColor(colors, id, description);
   }
-}
 
-main();
+  return {
+    colors: Object.fromEntries([...colors].toSorted(([a], [b]) => (a < b ? -1 : 1))),
+    extensions: user.extensions.toSorted(),
+    vscodeVersion: readVsCodeVersion(appRoot),
+  };
+}

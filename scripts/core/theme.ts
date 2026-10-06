@@ -1,5 +1,5 @@
 /**
- * Theme compiler – turns a theme source (with a `palette` and color references)
+ * Theme compiler – Turns a theme source (with a `palette` and color references)
  * into a plain VS Code color theme (with hex colors only).
  *
  * Color references are resolved in:
@@ -8,20 +8,39 @@
  * - `semanticTokenColors.*` (string values, or `.foreground` / `.background` of style objects)
  *
  * Each reference is also checked against its color scope (UI vs. syntax, see `scopes.ts`).
+ * Color pairs (`gray-900|gray-50`) are resolved last, once all other `colors` are hex colors, to the reference
+ * with the better contrast against the key's background (see `pickBestContrast`).
  * Sources without a `palette` are passed through unchanged, so themes can be migrated one at a time.
  */
 
-import type { BuildIssue, CompiledTheme, Palette } from '../types.ts';
-import { flattenPalette, resolveColorReference, TRANSPARENT } from './palette.ts';
+import type { BuildIssue, ColorScope, CompiledTheme, Palette } from '../types/index.ts';
+import { isPlainObject } from '../utils/object.ts';
+import { CONTRAST_FOREGROUND_KEYS, pickBestContrast } from './contrast.ts';
 import {
-  type ColorScope,
-  hasScopes,
-  isAllowedInScope,
-  scopeOfColorKey,
-  scopeViolationMessage,
-} from './scopes.ts';
+  COLOR_PAIR_SEPARATOR,
+  flattenPalette,
+  isColorPair,
+  referenceName,
+  resolveColorReference,
+  TRANSPARENT,
+} from './palette.ts';
+import { hasScopes, isAllowedInScope, scopeOfColorKey, scopeViolationMessage } from './scopes.ts';
 
-// ---------------------------------------- CONSTS ----------------------------------------
+// ---------------------------------------- TYPES ----------------------------------------
+
+/** State shared while resolving the color references of a single theme. */
+interface ResolveContext {
+  /** The flattened palette the references are resolved against. */
+  palette: Palette;
+  /** Whether scope restrictions apply to the palette (see `hasScopes`). */
+  scoped: boolean;
+  /** Number of color references that were resolved to hex colors. */
+  resolvedCount: number;
+  /** Every problem found while resolving. */
+  issues: BuildIssue[];
+}
+
+// ---------------------------------------- CONSTS ---------------------------------------
 
 /** The `$schema` written into every compiled theme. */
 export const VSCODE_THEME_SCHEMA = 'vscode://schemas/color-theme';
@@ -29,106 +48,190 @@ export const VSCODE_THEME_SCHEMA = 'vscode://schemas/color-theme';
 /** Color properties inside `tokenColors[].settings` and `semanticTokenColors` style objects. */
 const STYLE_COLOR_KEYS = ['foreground', 'background'] as const;
 
+/** Number of references in a color pair. */
+const COLOR_PAIR_SIZE = 2;
+
 // -------------------------------------- INTERNALS --------------------------------------
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
+/**
+ * Resolve a single color reference to its hex color, checking that it may be used in `scope`.
+ *
+ * @param value     The color reference.
+ * @param path      JSON path to the color reference (for issues).
+ * @param scope     The color scope the reference is used in.
+ * @param context   The resolve state, which collects the issues.
+ * @returns The hex color, or `undefined` if the reference is invalid (an issue was added then).
+ */
+function resolveHex(
+  value: unknown,
+  path: string,
+  scope: ColorScope,
+  context: ResolveContext
+): string | undefined {
+  const result = resolveColorReference(value, context.palette);
+  if (!result.ok) {
+    context.issues.push({ message: result.message, path });
+    return undefined;
+  }
+
+  const name = referenceName(value);
+  if (context.scoped && name !== undefined && !isAllowedInScope(name, scope)) {
+    context.issues.push({ message: scopeViolationMessage(name, scope), path });
+    return undefined;
+  }
+  return result.hex;
 }
 
-/** Resolves color references in place, counting successes and collecting issues. */
-class ReferenceResolver {
-  public resolvedCount = 0;
-  public readonly issues: BuildIssue[] = [];
-  readonly #palette: Palette;
-  readonly #scoped: boolean;
-
-  public constructor(palette: Palette) {
-    this.#palette = palette;
-    this.#scoped = hasScopes(palette);
+/**
+ * Resolve `target[key]` in place, checking that the referenced color may be used in `scope`.
+ *
+ * @param target    The object holding the color reference.
+ * @param key       The property of `target` that holds the color reference.
+ * @param path      JSON path to the color reference (for issues).
+ * @param scope     The color scope the reference is used in.
+ * @param context   The resolve state, which counts successes and collects issues.
+ */
+function resolveReference(
+  target: Record<string, unknown>,
+  key: string,
+  path: string,
+  scope: ColorScope,
+  context: ResolveContext
+): void {
+  const value = target[key];
+  if (isColorPair(value)) {
+    context.issues.push({
+      message:
+        'Color pairs are only supported for the foreground keys of `CONTRAST_PAIRS` (in `scripts/core/contrast.ts`).',
+      path,
+    });
+    return;
   }
 
-  /** Resolve `target[key]` in place, checking that the referenced color may be used in `scope`. */
-  public resolve(
-    target: Record<string, unknown>,
-    key: string,
-    path: string,
-    scope: ColorScope
-  ): void {
-    const value = target[key];
-    const result = resolveColorReference(value, this.#palette);
-    if (!result.ok) {
-      this.issues.push({ message: result.message, path });
-      return;
-    }
+  const hex = resolveHex(value, path, scope, context);
+  if (hex !== undefined) {
+    target[key] = hex;
+    context.resolvedCount += 1;
+  }
+}
 
-    const name = typeof value === 'string' ? value.split('/')[0] : undefined;
-    if (
-      this.#scoped &&
-      name !== undefined &&
-      name !== TRANSPARENT &&
-      !isAllowedInScope(name, scope)
-    ) {
-      this.issues.push({ message: scopeViolationMessage(name, scope), path });
-      return;
-    }
-
-    target[key] = result.hex;
-    this.resolvedCount += 1;
+/**
+ * Resolve the color pair in `colors[key]` in place, to the reference with the better contrast.
+ * Must run after all other `colors` are resolved, so the backgrounds are hex colors.
+ *
+ * @param colors    The `colors` object holding the color pair.
+ * @param key       The `colors` key that holds the color pair (a foreground in `CONTRAST_PAIRS`).
+ * @param context   The resolve state, which counts successes and collects issues.
+ */
+function resolveColorPair(
+  colors: Record<string, unknown>,
+  key: string,
+  context: ResolveContext
+): void {
+  const path = `colors[${JSON.stringify(key)}]`;
+  const references = String(colors[key]).split(COLOR_PAIR_SEPARATOR);
+  if (references.length !== COLOR_PAIR_SIZE) {
+    context.issues.push({
+      message: `A color pair must consist of exactly ${COLOR_PAIR_SIZE} colors ("<color>${COLOR_PAIR_SEPARATOR}<color>").`,
+      path,
+    });
+    return;
+  }
+  if (references.includes(TRANSPARENT)) {
+    context.issues.push({ message: `"${TRANSPARENT}" can't be part of a color pair.`, path });
+    return;
   }
 
-  /** Resolve the `foreground` / `background` properties of a style object in place. */
-  public resolveStyle(style: Record<string, unknown>, path: string, scope: ColorScope): void {
-    for (const key of STYLE_COLOR_KEYS) {
-      if (key in style) {
-        this.resolve(style, key, `${path}.${key}`, scope);
-      }
+  const hexes = references
+    .map((reference) => resolveHex(reference, path, scopeOfColorKey(key), context))
+    .filter((hex) => hex !== undefined);
+  if (hexes.length !== COLOR_PAIR_SIZE) {
+    return;
+  }
+
+  const best = pickBestContrast(key, hexes, colors);
+  if (best === undefined) {
+    context.issues.push({
+      message:
+        "No background to compare the color pair against – none of the backgrounds this key is paired with in `CONTRAST_PAIRS` is set (backgrounds can't be color pairs themselves).",
+      path,
+    });
+    return;
+  }
+  colors[key] = hexes[best];
+  context.resolvedCount += 1;
+}
+
+/** Resolve the `foreground` / `background` properties of a style object in place. */
+function resolveStyle(
+  style: Record<string, unknown>,
+  path: string,
+  scope: ColorScope,
+  context: ResolveContext
+): void {
+  for (const key of STYLE_COLOR_KEYS) {
+    if (key in style) {
+      resolveReference(style, key, `${path}.${key}`, scope, context);
     }
   }
 }
 
-function resolveColors(colors: unknown, resolver: ReferenceResolver): void {
+function resolveColors(colors: unknown, context: ResolveContext): void {
   if (colors === undefined) {
     return;
   }
   if (!isPlainObject(colors)) {
-    resolver.issues.push({ message: 'Expected an object.', path: 'colors' });
+    context.issues.push({ message: 'Expected an object.', path: 'colors' });
     return;
   }
+
+  // Color pairs are resolved last; They're picked by the contrast against already resolved backgrounds.
+  const pairKeys: string[] = [];
   for (const key of Object.keys(colors)) {
-    resolver.resolve(colors, key, `colors[${JSON.stringify(key)}]`, scopeOfColorKey(key));
+    if (isColorPair(colors[key]) && CONTRAST_FOREGROUND_KEYS.has(key)) {
+      pairKeys.push(key);
+    } else {
+      resolveReference(
+        colors,
+        key,
+        `colors[${JSON.stringify(key)}]`,
+        scopeOfColorKey(key),
+        context
+      );
+    }
+  }
+  for (const key of pairKeys) {
+    resolveColorPair(colors, key, context);
   }
 }
 
-function resolveTokenColors(tokenColors: unknown, resolver: ReferenceResolver): void {
+function resolveTokenColors(tokenColors: unknown, context: ResolveContext): void {
   // A string value is a path to an external TextMate theme, which isn't processed.
   if (!Array.isArray(tokenColors)) {
     return;
   }
   for (const [index, rule] of tokenColors.entries()) {
     if (isPlainObject(rule) && isPlainObject(rule.settings)) {
-      resolver.resolveStyle(rule.settings, `tokenColors[${index}].settings`, 'syntax');
+      resolveStyle(rule.settings, `tokenColors[${index}].settings`, 'syntax', context);
     }
   }
 }
 
-function resolveSemanticTokenColors(
-  semanticTokenColors: unknown,
-  resolver: ReferenceResolver
-): void {
+function resolveSemanticTokenColors(semanticTokenColors: unknown, context: ResolveContext): void {
   if (!isPlainObject(semanticTokenColors)) {
     return;
   }
   for (const [selector, value] of Object.entries(semanticTokenColors)) {
     const path = `semanticTokenColors[${JSON.stringify(selector)}]`;
     if (isPlainObject(value)) {
-      resolver.resolveStyle(value, path, 'syntax');
+      resolveStyle(value, path, 'syntax', context);
     } else {
-      resolver.resolve(semanticTokenColors, selector, path, 'syntax');
+      resolveReference(semanticTokenColors, selector, path, 'syntax', context);
     }
   }
 }
 
-// ---------------------------------------- PUBLIC ----------------------------------------
+// -------------------------------------- PUBLIC API -------------------------------------
 
 /**
  * Compile a parsed theme source into a VS Code color theme.
@@ -155,16 +258,21 @@ export function compileTheme(source: unknown): CompiledTheme {
 
   const paletteIssues: BuildIssue[] = [];
   const palette = flattenPalette(paletteSource, paletteIssues);
-  const resolver = new ReferenceResolver(palette);
+  const context: ResolveContext = {
+    issues: [],
+    palette,
+    resolvedCount: 0,
+    scoped: hasScopes(palette),
+  };
 
-  resolveColors(theme.colors, resolver);
-  resolveTokenColors(theme.tokenColors, resolver);
-  resolveSemanticTokenColors(theme.semanticTokenColors, resolver);
+  resolveColors(theme.colors, context);
+  resolveTokenColors(theme.tokenColors, context);
+  resolveSemanticTokenColors(theme.semanticTokenColors, context);
 
   return {
-    issues: [...paletteIssues, ...resolver.issues],
+    issues: [...paletteIssues, ...context.issues],
     palette,
-    resolvedCount: resolver.resolvedCount,
+    resolvedCount: context.resolvedCount,
     theme,
   };
 }

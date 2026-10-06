@@ -1,5 +1,5 @@
 /**
- * Color scopes – keep UI colors and syntax colors apart.
+ * Color scopes – Keep UI colors and syntax colors apart.
  *
  * The palette's `ui` group defines UI roles (`ui-accent-base`, `ui-error-bg`, …) as aliases of the base colors.
  * For palettes that define such a group, references are restricted by where they're used:
@@ -10,14 +10,9 @@
  * Palettes without a `ui` group aren't restricted, so themes can be migrated one at a time.
  */
 
-import type { Palette } from '../types.ts';
+import type { ColorScope, Palette } from '../types/index.ts';
 
-// ---------------------------------------- TYPES ----------------------------------------
-
-/** Which palette colors a color reference may use. */
-export type ColorScope = 'any' | 'syntax' | 'ui';
-
-// ---------------------------------------- CONSTS ----------------------------------------
+// ---------------------------------------- CONSTS ---------------------------------------
 
 /** Palette group that holds the UI roles. */
 export const UI_GROUP = 'ui';
@@ -49,7 +44,7 @@ function isInGroup(name: string, group: string): boolean {
   return name.startsWith(`${group}-`);
 }
 
-// ---------------------------------------- PUBLIC ----------------------------------------
+// -------------------------------------- PUBLIC API -------------------------------------
 
 /**
  * Whether scope restrictions apply to a palette (it defines at least one `ui-*` color).
