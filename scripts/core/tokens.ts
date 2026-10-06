@@ -1,10 +1,10 @@
 /**
  * Tokens – The semantic colors of a theme, defined per variant in `theme/tokens.ts`.
  *
- * Every theme is a function (named after the theme ID in camelCase, e.g., `xulbuxPro` for `xulbux-pro`) that
+ * Every theme is a function (named after the theme ID in camelCase, e.g., `isoluxPro` for `isolux-pro`) that
  * returns its token definitions (see `defineTheme`):
  * ```ts
- * export function xulbuxPro() {
+ * export function isoluxPro() {
  *   const accent = color.violet[400];
  *   return defineTheme({
  *     ui: {

@@ -46,7 +46,11 @@ function tokenRef(scope: ColorScope): Record<string, unknown> {
   return { $ref: `#/definitions/${SCOPE_DEFINITIONS[scope]}` };
 }
 
-/** Describe a token's colors in every theme and variant (Markdown). */
+/**
+ * Describe a token's colors in every theme and variant (Markdown).
+ * The list follows an intro line, since VS Code renders the hover as `` `value`: description ``,
+ * which would join the first list item with the value.
+ */
 function describeToken(name: string, themes: readonly ThemeTokenMap[]): string {
   const lines = themes.flatMap(({ id, tokens }) => {
     const token = tokens.get(name);
@@ -58,7 +62,7 @@ function describeToken(name: string, themes: readonly ThemeTokenMap[]): string {
       return `- ${id} (${variant}): \`${colorName}\` \`${hex}\``;
     });
   });
-  return lines.join('\n');
+  return ['resolves to:', '', ...lines].join('\n');
 }
 
 /**
@@ -164,7 +168,7 @@ export function generateSourceSchema(
 
   return {
     $schema: 'http://json-schema.org/draft-07/schema#',
-    // `name`, `type` and `palette` are set by the build (see `compileTheme`), so they're flagged.
+    // Keys set by the build (`name`, `type`, `author`, … – see `compileTheme`) are left out, so they're flagged.
     additionalProperties: false,
     definitions: {
       anyToken: buildTokenSchema(names, themes, 'any'),
@@ -183,10 +187,7 @@ export function generateSourceSchema(
     },
     properties: {
       $schema: { type: 'string' },
-      author: { type: 'string' },
       colors: buildColorsSchema(knownColors),
-      maintainers: { items: { type: 'string' }, type: 'array' },
-      semanticClass: { type: 'string' },
       semanticHighlighting: { type: 'boolean' },
       semanticTokenColors: {
         additionalProperties: { anyOf: [syntaxToken, semanticStyle] },

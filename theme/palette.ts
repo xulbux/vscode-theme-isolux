@@ -1,5 +1,5 @@
 /**
- * Palette – The raw colors shared by every XulbuX theme.
+ * Palette – The raw colors shared by every Isolux theme.
  *
  * This is the only place for hex colors. Every chromatic family is defined by its base color, which becomes
  * shade `400`; All other shades are generated (see `scripts/core/shades.ts`). Every base must have the same

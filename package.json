@@ -1,40 +1,40 @@
 {
-  "name": "theme-xulbux-neon-pro",
-  "version": "1.4.3",
-  "displayName": "Theme XulbuX PRO",
-  "description": "Theme pack which focuses on clear syntax and beautiful colors.",
-  "categories": ["Themes", "Visualization"],
+  "name": "theme-isolux",
+  "version": "1.0.0",
+  "displayName": "Isolux Theme",
+  "description": "Dark and light themes with equally bright, clearly separated syntax colors on a neutral base.",
+  "categories": ["Themes"],
   "keywords": [
     "accessible",
-    "blue",
+    "black",
     "color",
     "colorful",
-    "comprehensive",
     "dark",
-    "extensive",
+    "isolux",
+    "light",
+    "minimal",
     "modern",
-    "neon",
-    "pro",
+    "neutral",
+    "oklch",
+    "premium",
     "professional",
     "purple",
     "semantic",
     "syntax",
     "theme",
-    "vaporwave",
-    "vibrant",
-    "xulbux"
+    "violet"
   ],
   "author": { "name": "XulbuX", "email": "hi@xul.is" },
   "maintainers": ["XulbuX <hi@xul.is>"],
   "publisher": "xulbux",
-  "bugs": { "url": "https://github.com/xulbux/vscode-theme-xulbux-pro/issues" },
-  "repository": { "type": "git", "url": "https://github.com/xulbux/vscode-theme-xulbux-pro" },
+  "bugs": { "url": "https://github.com/xulbux/vscode-theme-isolux/issues" },
+  "repository": { "type": "git", "url": "https://github.com/xulbux/vscode-theme-isolux" },
   "license": "MIT",
   "type": "module",
   "contributes": {
     "themes": [
-      { "label": "XulbuX PRO Dark", "uiTheme": "vs-dark", "path": "./dist/xulbux-pro-dark.json" },
-      { "label": "XulbuX PRO Light", "uiTheme": "vs", "path": "./dist/xulbux-pro-light.json" }
+      { "label": "Isolux Pro Dark", "uiTheme": "vs-dark", "path": "./dist/isolux-pro-dark.json" },
+      { "label": "Isolux Pro Light", "uiTheme": "vs", "path": "./dist/isolux-pro-light.json" }
     ]
   },
   "scripts": {

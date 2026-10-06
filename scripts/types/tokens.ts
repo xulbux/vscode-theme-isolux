@@ -65,7 +65,7 @@ export type TokenMap = ReadonlyMap<string, ResolvedToken>;
 
 /** The tokens of one theme, together with its ID. */
 export interface ThemeTokenMap {
-  /** The theme ID (e.g., `xulbux-pro`). */
+  /** The theme ID (e.g., `isolux-pro`). */
   id: string;
   /** The theme's tokens. */
   tokens: TokenMap;

@@ -14,6 +14,12 @@ export interface CompileOptions {
   name: string;
   /** The variant to compile. */
   variant: Variant;
+  /** The theme's CSS class for semantic highlighting (e.g., `theme.isolux-pro`). */
+  semanticClass: string;
+  /** The extension's author (`Name <email>`, from `package.json`), if any. */
+  author?: string;
+  /** The extension's maintainers (`Name <email>`, from `package.json`), if any. */
+  maintainers?: readonly string[];
 }
 
 /** The result of compiling a theme source for one theme variant. */

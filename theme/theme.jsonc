@@ -1,8 +1,5 @@
 {
   "$schema": "../dist/theme.schema.json",
-  "author": "XulbuX",
-  "maintainers": ["XulbuX <hi@xul.is>"],
-  "semanticClass": "theme.xulbux-pro",
   "semanticHighlighting": true,
   "colors": {
     "actionBar.toggledBackground": "ui.background.active",

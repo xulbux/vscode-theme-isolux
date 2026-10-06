@@ -14,7 +14,8 @@
  *
  * The themes to build are read from `contributes.themes` in `package.json`: every theme path
  * `./dist/<id>-<variant>.json` is built with the tokens of `<id>` (its function in `theme/tokens.ts`, named in
- * camelCase) in `<variant>` (which must match the theme's `uiTheme`), using the theme's `label` as its name.
+ * camelCase) in `<variant>` (which must match the theme's `uiTheme`), using the theme's `label` as its name
+ * (`author` and `maintainers` are taken from `package.json` as well, the `semanticClass` is `theme.<id>`).
  * The JSON schema of the theme source is written to `dist/theme.schema.json`. Other `.json` files directly in
  * `dist/` (e.g., of a removed or renamed theme) are deleted.
  *
@@ -50,7 +51,7 @@ interface ManifestTheme {
   label?: string;
   /** The base theme (`vs-dark`, `vs`, …), which decides the variant. */
   uiTheme?: string;
-  /** Path to the built theme (e.g., `./dist/xulbux-pro-dark.json`). */
+  /** Path to the built theme (e.g., `./dist/isolux-pro-dark.json`). */
   path?: string;
 }
 
@@ -60,21 +61,38 @@ interface ManifestContributions {
   themes?: ManifestTheme[];
 }
 
+/** A person in `package.json` (`author` / `maintainers`) in object form. */
+interface ManifestPersonObject {
+  /** The person's name. */
+  name?: string;
+  /** The person's email address. */
+  email?: string;
+  /** The person's website. */
+  url?: string;
+}
+
+/** A person in `package.json`, as an object or an npm person string (`Name <email> (url)`). */
+type ManifestPerson = string | ManifestPersonObject;
+
 /** The parts of `package.json` relevant to the build. */
 interface Manifest {
+  /** The extension's author. */
+  author?: ManifestPerson;
+  /** The extension's maintainers. */
+  maintainers?: ManifestPerson[];
   /** The extension's contributions. */
   contributes?: ManifestContributions;
 }
 
 /** A theme variant to build (one entry of `contributes.themes`). */
 interface ThemeTarget {
-  /** The theme ID (e.g., `xulbux-pro`). */
+  /** The theme ID (e.g., `isolux-pro`). */
   id: string;
   /** The variant to build. */
   variant: Variant;
   /** The theme's display name. */
   label: string;
-  /** File name of the built theme in `dist/` (e.g., `xulbux-pro-dark.json`). */
+  /** File name of the built theme in `dist/` (e.g., `isolux-pro-dark.json`). */
   fileName: string;
 }
 
@@ -84,6 +102,10 @@ interface BuildOptions {
   knownColors: ColorDescriptions | undefined;
   /** Whether warnings fail the build as well (see `isStrictMode`). */
   strict: boolean;
+  /** The extension's author (`Name <email>`), written into every theme. */
+  author: string | undefined;
+  /** The extension's maintainers (`Name <email>`), written into every theme. */
+  maintainers: string[];
 }
 
 // ---------------------------------------- CONSTS ---------------------------------------
@@ -130,13 +152,32 @@ const DASH_RX = /-(?<char>[a-z0-9])/g;
 
 // -------------------------------------- INTERNALS --------------------------------------
 
+/** Read and parse `package.json`. */
+function readManifest(): Manifest {
+  return JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf8')) as Manifest;
+}
+
+/**
+ * Format a person from `package.json` as `Name <email>` (the format of a theme's `author` / `maintainers`).
+ * Strings are used as they are; Returns `undefined` for a person without a name.
+ */
+function formatPerson(person: ManifestPerson | undefined): string | undefined {
+  if (typeof person === 'string') {
+    return person.trim() === '' ? undefined : person.trim();
+  }
+  const name = person?.name?.trim();
+  if (name === undefined || name === '') {
+    return undefined;
+  }
+  const email = person?.email?.trim();
+  return email === undefined || email === '' ? name : `${name} <${email}>`;
+}
+
 /**
  * Read the theme variants to build from `contributes.themes` in `package.json`.
  * Invalid entries are logged and skipped.
  */
-function readThemeTargets(): ThemeTarget[] {
-  const manifestPath = path.join(ROOT_DIR, 'package.json');
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as Manifest;
+function readThemeTargets(manifest: Manifest): ThemeTarget[] {
   const targets: ThemeTarget[] = [];
 
   for (const theme of manifest.contributes?.themes ?? []) {
@@ -310,7 +351,10 @@ function buildTheme(
   const label = `${SOURCE_FILE} [${target.id} ${target.variant}]`;
   try {
     const { theme, resolvedCount, referenced, issues } = compileTheme(source, tokens, {
+      author: options.author,
+      maintainers: options.maintainers,
       name: target.label,
+      semanticClass: `theme.${target.id}`,
       variant: target.variant,
     });
     if (issues.length > 0) {
@@ -366,8 +410,16 @@ function removeStaleFiles(targets: readonly ThemeTarget[]): void {
 
 /** Build every theme listed in `package.json`; Sets the exit code to `1` if any of them failed. */
 async function main(): Promise<void> {
-  const targets = readThemeTargets();
-  const options: BuildOptions = { knownColors: readKnownColors(), strict: isStrictMode() };
+  const manifest = readManifest();
+  const targets = readThemeTargets(manifest);
+  const options: BuildOptions = {
+    author: formatPerson(manifest.author),
+    knownColors: readKnownColors(),
+    maintainers: (manifest.maintainers ?? [])
+      .map((person) => formatPerson(person))
+      .filter((person) => person !== undefined),
+    strict: isStrictMode(),
+  };
   fs.mkdirSync(DIST_DIR, { recursive: true });
 
   const ids = [...new Set(targets.map((target) => target.id))];

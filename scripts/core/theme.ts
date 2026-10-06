@@ -9,7 +9,8 @@
  *
  * Every value must be a token name (e.g., `ui.foreground.muted`) or `transparent`; Raw hex colors and color
  * adjustments aren't allowed (they belong into `theme/tokens.ts`). Each reference is also checked against its
- * scope (UI vs. syntax, see `scopes.ts`). The theme's `name` and `type` are set from `package.json`.
+ * scope (UI vs. syntax, see `scopes.ts`). The theme's `name`, `type`, `author` and `maintainers` are set from
+ * `package.json`, its `semanticClass` from the theme ID.
  */
 
 import type {
@@ -60,8 +61,11 @@ const VSCODE_THEME_SCHEMA = 'vscode://schemas/color-theme';
 
 /** Top-level source keys that are set by the build, mapped to where they come from instead. */
 const RESERVED_KEYS: ReadonlyMap<string, string> = new Map([
+  ['author', '"author" in package.json'],
+  ['maintainers', '"maintainers" in package.json'],
   ['name', 'the theme\'s "label" in package.json'],
   ['palette', '"theme/palette.ts"'],
+  ['semanticClass', 'the theme ID (`theme.<id>`)'],
   ['type', 'the theme\'s "uiTheme" in package.json'],
 ]);
 
@@ -178,10 +182,17 @@ export function compileTheme(
       ([key]) => key !== '$schema' && !RESERVED_KEYS.has(key)
     )
   );
-  // Assigned one by one, so `$schema`, `type` and `name` are always the first keys of the compiled theme.
+  // Assigned one by one, so the keys set by the build are always the first keys of the compiled theme.
   const theme: Record<string, unknown> = { $schema: VSCODE_THEME_SCHEMA };
   theme.type = THEME_TYPES[options.variant];
   theme.name = options.name;
+  if (options.author !== undefined) {
+    theme.author = options.author;
+  }
+  if (options.maintainers !== undefined && options.maintainers.length > 0) {
+    theme.maintainers = [...options.maintainers];
+  }
+  theme.semanticClass = options.semanticClass;
   Object.assign(theme, rest);
 
   resolveColors(theme.colors, context);

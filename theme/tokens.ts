@@ -1,7 +1,7 @@
 /**
- * Tokens – The semantic colors of every XulbuX theme.
+ * Tokens – The semantic colors of every Isolux theme.
  *
- * Every theme is a function named after its theme ID in camelCase (`xulbux-pro` → `xulbuxPro`) that returns its
+ * Every theme is a function named after its theme ID in camelCase (`isolux-pro` → `isoluxPro`) that returns its
  * tokens (see `scripts/core/tokens.ts`). Values are `[dark, light]` pairs, or a single color used in every variant.
  * The shared `theme/theme.jsonc` references the tokens by name (e.g., `ui.foreground.muted`), so every theme must
  * define the same token names.
@@ -50,8 +50,8 @@ const {
   violet,
 } = color;
 
-/** XulbuX PRO – Neutral grays with a violet accent and colorful, clearly separated syntax colors. */
-export function xulbuxPro() {
+/** Isolux Pro – Neutral grays with a violet accent and colorful, clearly separated syntax colors. */
+export function isoluxPro() {
   // Neutrals (the gray scale isn't evenly spaced, so the light grays are picked instead of mirrored):
   const white = lightness(gray[50], 1.02);
   const background = [gray[950], white] as const;
