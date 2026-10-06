@@ -206,6 +206,11 @@ const CONTRAST_PAIRS: readonly ContrastPair[] = [
     foreground: 'extensionButton.prominentForeground',
     min: TEXT,
   },
+  {
+    background: 'extensionButton.prominentHoverBackground',
+    foreground: 'extensionButton.prominentForeground',
+    min: TEXT,
+  },
   { background: 'badge.background', foreground: 'badge.foreground', min: TEXT },
   {
     background: 'activityBarBadge.background',

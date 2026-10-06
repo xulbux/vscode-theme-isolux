@@ -1,6 +1,6 @@
 <template>
   <div v-for="i in 10" :key="i">
-    NUMBER: {{ randNum() }}
+    Number: {{ randNum() }}
   </div>
 </template>
 

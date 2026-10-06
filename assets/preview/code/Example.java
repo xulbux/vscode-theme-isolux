@@ -3,9 +3,9 @@ import java.util.Random;
 public class Example {
   public static void main(String[] args) {
     Random random = new Random();
-    for (int IDX = 10; IDX > 0; --IDX) {
-      int x = random.nextInt(10) + 1 + IDX;
-      System.out.println("NUMBER: " + x);
+    for (int i = 10; i > 0; --i) {
+      int randNum = random.nextInt(10) + 1 + i;
+      System.out.println("Number: " + randNum);
     }
   }
 }
