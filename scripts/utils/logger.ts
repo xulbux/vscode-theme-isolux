@@ -8,6 +8,8 @@
 import { styleText } from 'node:util';
 import type { BuildIssue } from '../types/index.ts';
 
+// -------------------------------------- INTERNALS --------------------------------------
+
 function timestamp(): string {
   return styleText('gray', `[${new Date().toLocaleTimeString()}]`);
 }
@@ -17,6 +19,8 @@ function logIssues(issues: readonly BuildIssue[]): void {
     process.stderr.write(`    ${styleText('yellow', issue.path)}: ${issue.message}\n`);
   }
 }
+
+// -------------------------------------- PUBLIC API -------------------------------------
 
 /** General progress information. */
 export function logInfo(message: string): void {

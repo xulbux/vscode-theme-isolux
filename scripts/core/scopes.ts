@@ -15,7 +15,7 @@ import type { ColorScope, Palette } from '../types/index.ts';
 // ---------------------------------------- CONSTS ---------------------------------------
 
 /** Palette group that holds the UI roles. */
-export const UI_GROUP = 'ui';
+const UI_GROUP = 'ui';
 
 /** Palette groups allowed in the `ui` scope. */
 const UI_SCOPE_GROUPS: readonly string[] = [UI_GROUP, 'gray', 'ansi'];
@@ -35,6 +35,7 @@ export const CATEGORY_KEY_PREFIXES: readonly string[] = [
   'extensionIcon.',
   'gitDecoration.',
   'ports.icon',
+  'scmGraph.',
   'symbolIcon.',
 ];
 

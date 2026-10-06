@@ -5,7 +5,7 @@
  * Color references are resolved in:
  * - `colors.*`
  * - `tokenColors[].settings.foreground` / `.background`
- * - `semanticTokenColors.*` (string values, or `.foreground` / `.background` of style objects)
+ * - `semanticTokenColors.*` (string values, or `.foreground` of style objects; VS Code doesn't support a background there)
  *
  * Each reference is also checked against its color scope (UI vs. syntax, see `scopes.ts`).
  * Color pairs (`gray-900|gray-50`) are resolved last, once all other `colors` are hex colors, to the reference
@@ -15,6 +15,7 @@
 
 import type { BuildIssue, ColorScope, CompiledTheme, Palette } from '../types/index.ts';
 import { isPlainObject } from '../utils/object.ts';
+import { colorKeyPath, forEachTokenColor } from '../utils/theme.ts';
 import { CONTRAST_FOREGROUND_KEYS, pickBestContrast } from './contrast.ts';
 import {
   COLOR_PAIR_SEPARATOR,
@@ -43,10 +44,7 @@ interface ResolveContext {
 // ---------------------------------------- CONSTS ---------------------------------------
 
 /** The `$schema` written into every compiled theme. */
-export const VSCODE_THEME_SCHEMA = 'vscode://schemas/color-theme';
-
-/** Color properties inside `tokenColors[].settings` and `semanticTokenColors` style objects. */
-const STYLE_COLOR_KEYS = ['foreground', 'background'] as const;
+const VSCODE_THEME_SCHEMA = 'vscode://schemas/color-theme';
 
 /** Number of references in a color pair. */
 const COLOR_PAIR_SIZE = 2;
@@ -128,7 +126,7 @@ function resolveColorPair(
   key: string,
   context: ResolveContext
 ): void {
-  const path = `colors[${JSON.stringify(key)}]`;
+  const path = colorKeyPath(key);
   const references = String(colors[key]).split(COLOR_PAIR_SEPARATOR);
   if (references.length !== COLOR_PAIR_SIZE) {
     context.issues.push({
@@ -162,20 +160,9 @@ function resolveColorPair(
   context.resolvedCount += 1;
 }
 
-/** Resolve the `foreground` / `background` properties of a style object in place. */
-function resolveStyle(
-  style: Record<string, unknown>,
-  path: string,
-  scope: ColorScope,
-  context: ResolveContext
-): void {
-  for (const key of STYLE_COLOR_KEYS) {
-    if (key in style) {
-      resolveReference(style, key, `${path}.${key}`, scope, context);
-    }
-  }
-}
-
+/**
+ * Resolve every color reference in `colors` in place (color pairs last, see `resolveColorPair`).
+ */
 function resolveColors(colors: unknown, context: ResolveContext): void {
   if (colors === undefined) {
     return;
@@ -191,43 +178,11 @@ function resolveColors(colors: unknown, context: ResolveContext): void {
     if (isColorPair(colors[key]) && CONTRAST_FOREGROUND_KEYS.has(key)) {
       pairKeys.push(key);
     } else {
-      resolveReference(
-        colors,
-        key,
-        `colors[${JSON.stringify(key)}]`,
-        scopeOfColorKey(key),
-        context
-      );
+      resolveReference(colors, key, colorKeyPath(key), scopeOfColorKey(key), context);
     }
   }
   for (const key of pairKeys) {
     resolveColorPair(colors, key, context);
-  }
-}
-
-function resolveTokenColors(tokenColors: unknown, context: ResolveContext): void {
-  // A string value is a path to an external TextMate theme, which isn't processed.
-  if (!Array.isArray(tokenColors)) {
-    return;
-  }
-  for (const [index, rule] of tokenColors.entries()) {
-    if (isPlainObject(rule) && isPlainObject(rule.settings)) {
-      resolveStyle(rule.settings, `tokenColors[${index}].settings`, 'syntax', context);
-    }
-  }
-}
-
-function resolveSemanticTokenColors(semanticTokenColors: unknown, context: ResolveContext): void {
-  if (!isPlainObject(semanticTokenColors)) {
-    return;
-  }
-  for (const [selector, value] of Object.entries(semanticTokenColors)) {
-    const path = `semanticTokenColors[${JSON.stringify(selector)}]`;
-    if (isPlainObject(value)) {
-      resolveStyle(value, path, 'syntax', context);
-    } else {
-      resolveReference(semanticTokenColors, selector, path, 'syntax', context);
-    }
   }
 }
 
@@ -243,6 +198,7 @@ export function compileTheme(source: unknown): CompiledTheme {
       issues: [{ message: 'Expected the theme to be a JSON object.', path: '(root)' }],
       palette: undefined,
       resolvedCount: 0,
+      scoped: false,
       theme: {},
     };
   }
@@ -253,7 +209,7 @@ export function compileTheme(source: unknown): CompiledTheme {
   theme.$schema = VSCODE_THEME_SCHEMA;
 
   if (paletteSource === undefined) {
-    return { issues: [], palette: undefined, resolvedCount: 0, theme };
+    return { issues: [], palette: undefined, resolvedCount: 0, scoped: false, theme };
   }
 
   const paletteIssues: BuildIssue[] = [];
@@ -266,13 +222,15 @@ export function compileTheme(source: unknown): CompiledTheme {
   };
 
   resolveColors(theme.colors, context);
-  resolveTokenColors(theme.tokenColors, context);
-  resolveSemanticTokenColors(theme.semanticTokenColors, context);
+  forEachTokenColor(theme, (target, key, path) => {
+    resolveReference(target, key, path, 'syntax', context);
+  });
 
   return {
     issues: [...paletteIssues, ...context.issues],
     palette,
     resolvedCount: context.resolvedCount,
+    scoped: context.scoped,
     theme,
   };
 }

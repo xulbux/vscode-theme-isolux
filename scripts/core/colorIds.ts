@@ -5,21 +5,46 @@
  * (VS Code's own schema can't be used for that, as it also requires hex values). Collected from:
  * - the workbench bundle of the VS Code installation (core colors)
  * - the built-in extensions of that installation (e.g., `gitDecoration.*`)
- * - the user's installed extensions in `~/.vscode/extensions`
+ * - the user's installed extensions (e.g., in `~/.vscode/extensions`; The data folder is named by the
+ *   installation's `product.json`, see `getUserExtensionsDir`), only the newest version of each
  *
- * They're read on every build (≈ 0.3 s), so they always match the installed VS Code version.
+ * They're read on every build (≈ 0.2 s), so they always match the installed VS Code version.
  * The VS Code installation is detected automatically (see `findAppRoot`).
  */
 
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import type { VsCodeColorIds } from '../types/index.ts';
 import { listDirectories, readJson } from '../utils/fs.ts';
 import { escapeRegExp } from '../utils/strings.ts';
-import { findAppRoot, readVsCodeVersion, WORKBENCH_BUNDLE } from '../utils/vscode.ts';
+import {
+  findAppRoot,
+  getUserExtensionsDir,
+  readVsCodeVersion,
+  WORKBENCH_BUNDLE,
+} from '../utils/vscode.ts';
 
 // ---------------------------------------- TYPES ----------------------------------------
+
+/** A theme color contributed by an extension (unvalidated). */
+interface ColorContribution {
+  /** The color ID (e.g., `gitDecoration.addedResourceForeground`). */
+  id?: unknown;
+  /** The description, or a `%key%` reference to the extension's `package.nls.json`. */
+  description?: unknown;
+}
+
+/** A theme color contributed by an extension, with a valid ID. */
+interface ValidColorContribution extends ColorContribution {
+  /** The color ID (e.g., `gitDecoration.addedResourceForeground`). */
+  id: string;
+}
+
+/** The contributions of an extension relevant for colors. */
+interface ExtensionContributions {
+  /** The contributed theme colors. */
+  colors?: ColorContribution[];
+}
 
 /** The parts of an extension's `package.json` relevant for color contributions. */
 interface ExtensionManifest {
@@ -27,8 +52,26 @@ interface ExtensionManifest {
   name?: string;
   /** The extension's publisher ID. */
   publisher?: string;
-  /** The contributed theme colors. */
-  contributes?: { colors?: { id?: unknown; description?: unknown }[] };
+  /** The extension's contributions. */
+  contributes?: ExtensionContributions;
+}
+
+/** An extension folder, identified by its extension ID and version. */
+interface ExtensionFolder {
+  /** Full path of the folder. */
+  dir: string;
+  /** The extension ID (`publisher.name`, lowercase), or the folder name if it isn't versioned. */
+  id: string;
+  /** The version numbers (e.g., `[1, 2, 3]`), empty if the folder name isn't versioned. */
+  version: number[];
+}
+
+/** The colors contributed by the extensions of a folder. */
+interface ExtensionColors {
+  /** The contributed colors, mapped to their description. */
+  colors: DescriptionMap;
+  /** The extensions (`publisher.name`) that contributed any colors. */
+  extensions: string[];
 }
 
 /** Color IDs mapped to their description (empty if none was found). */
@@ -38,7 +81,6 @@ type DescriptionMap = Map<string, string>;
 
 /** The English UI strings of the bundle, which references them by index (`localize(<index>, null)`). */
 const NLS_MESSAGES = path.join('out', 'nls.messages.json');
-const USER_EXTENSIONS_DIR = path.join(os.homedir(), '.vscode', 'extensions');
 
 /** Core colors that are always registered, used to find the (minified) `registerColor` function. */
 const ANCHOR_COLOR_IDS = ['foreground', 'focusBorder', 'editor.background'] as const;
@@ -65,6 +107,10 @@ const NLS_KEY_RX = /^%(?<key>.+)%$/;
 
 /** Matches an entry of the terminal ANSI color map (`"terminal.ansi…":{index:`). */
 const TERMINAL_ANSI_ENTRY_RX = /"(?<id>terminal\.ansi\w+)":\{index:/g;
+
+/** Matches a versioned extension folder name (`publisher.name-1.2.3`, optionally with a platform like `-win32-x64`). */
+const EXTENSION_FOLDER_RX =
+  /^(?<id>.+?)-(?<version>\d+\.\d+\.\d+)(?:-[a-z][a-z0-9]*(?:-[a-z0-9]+)?)?$/i;
 
 // -------------------------------------- INTERNALS --------------------------------------
 
@@ -255,24 +301,63 @@ function resolveExtensionDescription(
 }
 
 /**
+ * Split an extension folder name into the extension ID and version (e.g., `publisher.name-1.2.3-win32-x64`).
+ */
+function parseExtensionFolder(dir: string): ExtensionFolder {
+  const name = path.basename(dir);
+  const groups = EXTENSION_FOLDER_RX.exec(name)?.groups;
+  if (groups?.id === undefined || groups.version === undefined) {
+    return { dir, id: name.toLowerCase(), version: [] };
+  }
+  return { dir, id: groups.id.toLowerCase(), version: groups.version.split('.').map(Number) };
+}
+
+/**
+ * Compare two versions number by number.
+ * @returns A negative number if `a` is older than `b`, a positive number if it's newer, `0` if they're equal.
+ */
+function compareVersions(a: readonly number[], b: readonly number[]): number {
+  for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
+    const difference = (a.at(i) ?? 0) - (b.at(i) ?? 0);
+    if (difference !== 0) {
+      return difference;
+    }
+  }
+  return 0;
+}
+
+/**
+ * List the extension folders in `extensionsDir`, keeping only the newest version of each extension
+ * (outdated versions stay on disk until VS Code cleans them up).
+ */
+function listNewestExtensions(extensionsDir: string): string[] {
+  const newest = new Map<string, ExtensionFolder>();
+  for (const dir of listDirectories(extensionsDir)) {
+    const folder = parseExtensionFolder(dir);
+    const known = newest.get(folder.id);
+    if (known === undefined || compareVersions(folder.version, known.version) > 0) {
+      newest.set(folder.id, folder);
+    }
+  }
+  return [...newest.values()].map((folder) => folder.dir);
+}
+
+/**
  * Collect the colors (with their descriptions) contributed by the extensions in `extensionsDir`.
  * @returns The colors and the extensions (`publisher.name`) that contributed any.
  */
-function extractExtensionColors(extensionsDir: string): {
-  colors: DescriptionMap;
-  extensions: string[];
-} {
+function extractExtensionColors(extensionsDir: string): ExtensionColors {
   const colors: DescriptionMap = new Map();
   const extensions = new Set<string>();
 
-  for (const dir of listDirectories(extensionsDir)) {
+  for (const dir of listNewestExtensions(extensionsDir)) {
     const manifestFile = path.join(dir, 'package.json');
     const nlsFile = path.join(dir, 'package.nls.json');
     const manifest = fs.existsSync(manifestFile)
       ? (readJson(manifestFile) as ExtensionManifest)
       : undefined;
     const contributed = (manifest?.contributes?.colors ?? []).filter(
-      (color): color is { id: string; description?: unknown } => typeof color.id === 'string'
+      (color): color is ValidColorContribution => typeof color.id === 'string'
     );
     if (manifest !== undefined && contributed.length > 0) {
       const nls = fs.existsSync(nlsFile) ? (readJson(nlsFile) as Record<string, unknown>) : {};
@@ -297,7 +382,7 @@ export function readVsCodeColorIds(): VsCodeColorIds {
   const appRoot = findAppRoot();
   const core = extractCoreColors(appRoot);
   const builtIn = extractExtensionColors(path.join(appRoot, 'extensions'));
-  const user = extractExtensionColors(USER_EXTENSIONS_DIR);
+  const user = extractExtensionColors(getUserExtensionsDir(appRoot));
 
   const colors: DescriptionMap = new Map();
   for (const [id, description] of [...core, ...builtIn.colors, ...user.colors]) {

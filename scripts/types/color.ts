@@ -3,7 +3,7 @@ export type Gamut = 'srgb' | 'p3';
 
 /** A color in the OKLCH color space. */
 export interface Oklch {
-  /** Perceived lightness, from `0` (black) to `1` (white). */
+  /** OKLCH lightness, from `0` (black) to `1` (white). */
   l: number;
   /** Chroma (colorfulness), from `0` (gray) upwards (~ `0.32` at most within sRGB, ~ `0.37` within Display P3). */
   c: number;

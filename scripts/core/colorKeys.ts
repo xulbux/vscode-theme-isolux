@@ -7,8 +7,8 @@
  */
 
 import type { BuildIssue, ColorDescriptions } from '../types/index.ts';
-import { isPlainObject } from '../utils/object.ts';
-import { findClosest } from '../utils/strings.ts';
+import { didYouMean } from '../utils/strings.ts';
+import { colorKeyPath, readColors } from '../utils/theme.ts';
 
 // -------------------------------------- PUBLIC API -------------------------------------
 
@@ -23,16 +23,12 @@ export function checkColorKeys(
   theme: Record<string, unknown>,
   knownColors: ColorDescriptions
 ): BuildIssue[] {
-  const colors = isPlainObject(theme.colors) ? theme.colors : {};
   const knownKeys = Object.keys(knownColors);
 
-  return Object.keys(colors)
+  return Object.keys(readColors(theme))
     .filter((key) => !Object.hasOwn(knownColors, key))
-    .map((key) => {
-      const closest = findClosest(key, knownKeys);
-      return {
-        message: `Unknown color key (misspelled, or removed from VS Code).${closest ? ` Did you mean "${closest}"?` : ''}`,
-        path: `colors[${JSON.stringify(key)}]`,
-      };
-    });
+    .map((key) => ({
+      message: `Unknown color key (misspelled, or removed from VS Code).${didYouMean(key, knownKeys)}`,
+      path: colorKeyPath(key),
+    }));
 }

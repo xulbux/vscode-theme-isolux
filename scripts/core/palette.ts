@@ -19,19 +19,22 @@
  * Color references (inside `colors`, `tokenColors` and `semanticTokenColors`):
  * - `violet-400`        – The palette color as-is
  * - `violet-400/20`     – The palette color at one of the allowed `OPACITY_STEPS` (in %)
- * - `violet-400%90`     – The palette color with its OKLCH lightness scaled to 90 % (`MIN_LIGHTNESS` – `MAX_LIGHTNESS`),
+ * - `violet-400%90`     – The palette color with its perceived lightness (the toe-corrected OKLCH lightness `Lr`,
+ *                         see `scaleLightness`) scaled to 90 % (`MIN_LIGHTNESS` – `MAX_LIGHTNESS`),
  *                         for subtle variants (e.g., hover colors) in between the shades
  * - `violet-400%90/20`  – Both (the lightness is scaled first)
  * - `transparent`       – Fully transparent
  *
  * Color pairs (only for the foreground keys of `CONTRAST_PAIRS` in `contrast.ts`):
  * - `gray-900|gray-50` – Whichever of the two references has the better contrast against the key's background
+ *
+ * The syntax patterns (`NAME_PATTERN`, …) are shared with the generated source schema (see `schema.ts`).
  */
 
 import type { BuildIssue, ColorResolution, Palette } from '../types/index.ts';
-import { scaleLightness } from '../utils/color.ts';
+import { isOpaqueHexColor, normalizeHex, scaleLightness } from '../utils/color.ts';
 import { isPlainObject } from '../utils/object.ts';
-import { findClosest } from '../utils/strings.ts';
+import { didYouMean, escapeRegExp, integerRangePattern } from '../utils/strings.ts';
 import { generateShades, TARGET_LIGHTNESS, validateBaseColor } from './shades.ts';
 
 // ---------------------------------------- CONSTS ---------------------------------------
@@ -53,9 +56,6 @@ export const OPACITY_STEPS: ReadonlyMap<number, string> = new Map([
   [70, 'B3'],
   [80, 'CC'],
   [90, 'E6'],
-  // Visually opaque, but technically still translucent, which makes VS Code
-  // blend the color instead of treating it as a solid (overriding) color.
-  [99, 'FE'],
 ]);
 
 /**
@@ -76,45 +76,70 @@ export const COLOR_PAIR_SEPARATOR = '|';
 /** Separates a palette color name from its lightness modifier (e.g., `violet-400%90`). */
 export const LIGHTNESS_SEPARATOR = '%';
 
+/** Separates a palette color name (or lightness modifier) from its opacity step (e.g., `violet-400/20`). */
+export const OPACITY_SEPARATOR = '/';
+
 /**
  * Allowed numeric shade keys (the Tailwind steps).
  * Restricting the shades keeps the palette small and prevents near-duplicate in-between colors.
  */
 export const SHADES: ReadonlySet<string> = new Set([...TARGET_LIGHTNESS.keys()].map(String));
 
+/** The hex color `TRANSPARENT` resolves to. */
 const TRANSPARENT_HEX = '#00000000';
 
 /** The lightness modifier that leaves a color unchanged (in %). */
 const NEUTRAL_LIGHTNESS = 100;
 
+/** Pattern of a single palette key (lowercase letters and digits, joined by dashes; without anchors). */
+const NAME_SEGMENT_PATTERN = '[a-z0-9]+(?:-[a-z0-9]+)*';
+
+/** Pattern of a full palette color name (like a key, but starting with a letter; without anchors). */
+export const NAME_PATTERN = '[a-z][a-z0-9]*(?:-[a-z0-9]+)*';
+
+/** Pattern of a numeric key, i.e., a shade (without anchors). */
+export const NUMERIC_PATTERN = String.raw`\d+`;
+
+/**
+ * Pattern of an allowed lightness modifier value (`MIN_LIGHTNESS` – `MAX_LIGHTNESS`, except `NEUTRAL_LIGHTNESS`;
+ * without anchors). The build itself accepts any number, so it can explain why a value isn't allowed.
+ */
+export const LIGHTNESS_VALUE_PATTERN = integerRangePattern(MIN_LIGHTNESS, MAX_LIGHTNESS, [
+  NEUTRAL_LIGHTNESS,
+]);
+
+/**
+ * Pattern of an allowed opacity value (one of the `OPACITY_STEPS`; without anchors).
+ * The build itself accepts any number, so it can explain why a value isn't allowed.
+ */
+export const OPACITY_VALUE_PATTERN = `(?:${[...OPACITY_STEPS.keys()].join('|')})`;
+
 // ------------------------------------ REGEX PATTERNS -----------------------------------
 
-/** Matches an opaque `#RRGGBB` hex color. */
-const HEX_RX = /^#[0-9A-F]{6}$/i;
-
-/** Matches any hex color notation (`#RGB`, `#RGBA`, `#RRGGBB` or `#RRGGBBAA`). */
-const ANY_HEX_RX = /^#(?:[0-9A-F]{3,4}|[0-9A-F]{6}|[0-9A-F]{8})$/i;
-
 /** Matches a single palette key (lowercase letters and digits, joined by dashes). */
-const NAME_SEGMENT_RX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const NAME_SEGMENT_RX = new RegExp(`^${NAME_SEGMENT_PATTERN}$`);
 
 /** Matches a full palette color name (like a key, but starting with a letter). */
-const NAME_RX = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+const NAME_RX = new RegExp(`^${NAME_PATTERN}$`);
 
 /** Matches an alias value (`<name>` or `<name>%<lightness>`). */
-const ALIAS_RX = /^(?<name>[a-z][a-z0-9]*(?:-[a-z0-9]+)*)(?:%(?<lightness>\d+))?$/;
+const ALIAS_RX = new RegExp(
+  String.raw`^(?<name>${NAME_PATTERN})(?:${escapeRegExp(LIGHTNESS_SEPARATOR)}(?<lightness>\d+))?$`
+);
 
 /** Matches a color reference (`<name>`, optionally followed by `%<lightness>` and / or `/<opacity>`). */
-const REFERENCE_RX = /^(?<name>[a-z][a-z0-9-]*)(?:%(?<lightness>\d+))?(?:\/(?<opacity>\d+))?$/;
+const REFERENCE_RX = new RegExp(
+  String.raw`^(?<name>${NAME_PATTERN})(?:${escapeRegExp(LIGHTNESS_SEPARATOR)}(?<lightness>\d+))?(?:${escapeRegExp(OPACITY_SEPARATOR)}(?<opacity>\d+))?$`
+);
 
 /** Matches a numeric key (a shade). */
-const NUMERIC_RX = /^\d+$/;
+const NUMERIC_RX = new RegExp(`^${NUMERIC_PATTERN}$`);
 
 // -------------------------------------- INTERNALS --------------------------------------
 
+/** Build the error message for an unknown palette color, suggesting the closest known name. */
 function unknownColorMessage(name: string, knownNames: Iterable<string>): string {
-  const hint = findClosest(name, knownNames);
-  return `Unknown palette color "${name}".${hint ? ` Did you mean "${hint}"?` : ''}`;
+  return `Unknown palette color "${name}".${didYouMean(name, knownNames)}`;
 }
 
 /**
@@ -141,6 +166,7 @@ function applyLightness(hex: string, lightness: string | undefined): ColorResolu
   return { hex: scaleLightness(hex, percent / 100), ok: true };
 }
 
+/** Add a raw palette entry by its flat name, reporting a duplicate name instead of overwriting it. */
 function addEntry(
   name: string,
   value: string,
@@ -188,7 +214,7 @@ function collectEntries(
     const name = prefix ? `${prefix}-${key}` : key;
     const path = `palette.${name}`;
     const scaleError = isPlainObject(value) ? validateShadeScale(value) : undefined;
-    const isBaseColor = prefix === '' && typeof value === 'string' && HEX_RX.test(value);
+    const isBaseColor = prefix === '' && isOpaqueHexColor(value);
     const baseError = isBaseColor ? validateBaseColor(value) : undefined;
 
     if (!NAME_SEGMENT_RX.test(key) || !NAME_RX.test(name)) {
@@ -256,7 +282,7 @@ function resolveEntry(
     message: `Expected an opaque "#RRGGBB" hex color or the name of another palette color (optionally with a lightness, e.g., "violet-500${LIGHTNESS_SEPARATOR}90"), got "${value}".`,
     ok: false,
   };
-  if (HEX_RX.test(value)) {
+  if (isOpaqueHexColor(value)) {
     result = { hex: value.toUpperCase(), ok: true };
   } else if (alias?.name !== undefined) {
     result = resolveEntry(alias.name, entries, resolved, [...chain, name]);
@@ -273,10 +299,14 @@ function resolveEntry(
 
 /**
  * Build the error message for a raw hex value, pointing to the matching palette color(s), if any.
+ *
+ * @param value     The raw hex value as written in the source.
+ * @param hex       The same color, normalized to `#RRGGBB` / `#RRGGBBAA` (see `normalizeHex`).
+ * @param palette   The flattened palette to search for matches (the alpha channel is ignored).
  */
-function describeRawHex(value: string, palette: Palette): string {
-  const base = value.length === 9 ? value.slice(0, 7).toUpperCase() : value.toUpperCase();
-  const matches = [...palette].filter(([, hex]) => hex === base).map(([name]) => `"${name}"`);
+function describeRawHex(value: string, hex: string, palette: Palette): string {
+  const opaque = hex.slice(0, 7);
+  const matches = [...palette].filter(([, color]) => color === opaque).map(([name]) => `"${name}"`);
   const hint = matches.length > 0 ? ` (matches ${matches.join(', ')})` : '';
   return `Raw hex color "${value}" is not allowed${hint} – add it to the palette and reference it by name.`;
 }
@@ -290,7 +320,7 @@ export function isColorPair(value: unknown): value is string {
 
 /**
  * Flatten a theme's nested `palette` object into a `name → #RRGGBB` map, resolving aliases.
- * Problems are appended to `issues`; invalid entries are left out of the result.
+ * Problems are appended to `issues`; Invalid entries are left out of the result.
  */
 export function flattenPalette(source: unknown, issues: BuildIssue[]): Palette {
   const palette = new Map<string, string>();
@@ -341,15 +371,16 @@ export function resolveColorReference(value: unknown, palette: Palette): ColorRe
   if (value === TRANSPARENT) {
     return { hex: TRANSPARENT_HEX, ok: true };
   }
-  if (ANY_HEX_RX.test(value)) {
-    return { message: describeRawHex(value, palette), ok: false };
+  const rawHex = normalizeHex(value);
+  if (rawHex !== undefined) {
+    return { message: describeRawHex(value, rawHex, palette), ok: false };
   }
 
   const groups = REFERENCE_RX.exec(value)?.groups;
   const name = groups?.name;
   if (name === undefined) {
     return {
-      message: `Invalid color reference "${value}" – expected "<name>", "<name>${LIGHTNESS_SEPARATOR}<lightness>", "<name>/<opacity>" (or both) or "${TRANSPARENT}".`,
+      message: `Invalid color reference "${value}" – expected "<name>", "<name>${LIGHTNESS_SEPARATOR}<lightness>", "<name>${OPACITY_SEPARATOR}<opacity>" (or both) or "${TRANSPARENT}".`,
       ok: false,
     };
   }
@@ -369,7 +400,7 @@ export function resolveColorReference(value: unknown, palette: Palette): ColorRe
   const alpha = OPACITY_STEPS.get(Number(groups.opacity));
   if (alpha === undefined) {
     return {
-      message: `Opacity "/${groups.opacity}" is not allowed – use one of: ${[...OPACITY_STEPS.keys()].join(', ')}.`,
+      message: `Opacity "${OPACITY_SEPARATOR}${groups.opacity}" is not allowed – use one of: ${[...OPACITY_STEPS.keys()].join(', ')}.`,
       ok: false,
     };
   }

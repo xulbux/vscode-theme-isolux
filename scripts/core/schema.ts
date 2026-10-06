@@ -1,14 +1,17 @@
 /**
- * Source schema generator.
+ * Source schema – Generates the JSON schema of a theme source that uses the palette system.
  *
  * VS Code's built-in `vscode://schemas/color-theme` schema requires hex colors, so it would flag every
  * palette reference in a theme source. Instead, theme sources point their `$schema` to a schema generated
  * from their own palette, which:
  * - suggests every palette color (with its hex value) when typing a color value
- * - flags unknown palette colors, disallowed opacity steps and color scope violations right in the editor
+ * - flags unknown palette colors, disallowed lightness modifiers and opacity steps and color scope violations
+ *   right in the editor
  * - flags unknown `colors` keys and shows their descriptions (read from the installed VS Code, see `colorIds.ts`;
  *   The build flags unknown keys as well, see `colorKeys.ts`)
  * - flags invalid `tokenColors` structure (unknown properties, invalid `fontStyle`, …)
+ *
+ * The patterns are built from the same syntax definitions the build uses (see `palette.ts`).
  *
  * VS Code's own token color schemas are still included as an `if` condition: VS Code's JSON language service
  * uses the schemas of an `if` for suggestions and hover descriptions, but never reports their problems. That way
@@ -16,18 +19,24 @@
  */
 
 import type { ColorDescriptions, ColorScope, Palette } from '../types/index.ts';
+import { OPAQUE_HEX_PATTERN } from '../utils/color.ts';
 import { escapeRegExp } from '../utils/strings.ts';
 import { CONTRAST_FOREGROUND_KEYS } from './contrast.ts';
 import {
   COLOR_PAIR_SEPARATOR,
   LIGHTNESS_SEPARATOR,
+  LIGHTNESS_VALUE_PATTERN,
   MAX_LIGHTNESS,
   MIN_LIGHTNESS,
+  NAME_PATTERN,
+  NUMERIC_PATTERN,
+  OPACITY_SEPARATOR,
   OPACITY_STEPS,
+  OPACITY_VALUE_PATTERN,
   SHADES,
   TRANSPARENT,
 } from './palette.ts';
-import { CATEGORY_KEY_PREFIXES, hasScopes, isAllowedInScope, scopeOfColorKey } from './scopes.ts';
+import { CATEGORY_KEY_PREFIXES, isAllowedInScope, scopeOfColorKey } from './scopes.ts';
 import { BASE_SHADE, TARGET_LIGHTNESS } from './shades.ts';
 
 // ---------------------------------------- TYPES ----------------------------------------
@@ -46,24 +55,29 @@ interface ColorReferenceSchemas {
 
 // ---------------------------------------- CONSTS ---------------------------------------
 
-/** VS Code's built-in schemas of `tokenColors` and `semanticTokenColors` (only resolvable inside VS Code). */
+/** VS Code's built-in schema of `tokenColors` (only resolvable inside VS Code). */
 const VSCODE_TEXTMATE_COLORS_SCHEMA = 'vscode://schemas/textmate-colors';
+
+/** VS Code's built-in schema of `semanticTokenColors` (only resolvable inside VS Code). */
 const VSCODE_TOKEN_STYLING_SCHEMA = 'vscode://schemas/token-styling';
 
 /** Allowed `fontStyle` values (same pattern as VS Code's TextMate theme schema). */
 const FONT_STYLE_PATTERN = String.raw`^(\s*\b(italic|bold|underline|strikethrough))*\s*$`;
 
 /** JSON schema pattern of an opaque `#RRGGBB` hex color. */
-const HEX_PATTERN = '^#[0-9A-Fa-f]{6}$';
+const HEX_PATTERN = `^${OPAQUE_HEX_PATTERN}$`;
 
-/** JSON schema pattern of a lightness modifier (the allowed range is checked by the build). */
-const LIGHTNESS_PATTERN = String.raw`(?:${escapeRegExp(LIGHTNESS_SEPARATOR)}\d{2,3})?`;
+/** JSON schema pattern of an optional lightness modifier (only the allowed values, see `LIGHTNESS_VALUE_PATTERN`). */
+const LIGHTNESS_PATTERN = `(?:${escapeRegExp(LIGHTNESS_SEPARATOR)}${LIGHTNESS_VALUE_PATTERN})?`;
+
+/** JSON schema pattern of an optional opacity step (only the allowed values, see `OPACITY_VALUE_PATTERN`). */
+const OPACITY_PATTERN = `(?:${escapeRegExp(OPACITY_SEPARATOR)}${OPACITY_VALUE_PATTERN})?`;
 
 /** JSON schema pattern of a palette alias (another color's name, optionally with a lightness modifier). */
-const ALIAS_PATTERN = `^[a-z][a-z0-9]*(?:-[a-z0-9]+)*${LIGHTNESS_PATTERN}$`;
+const ALIAS_PATTERN = `^${NAME_PATTERN}${LIGHTNESS_PATTERN}$`;
 
 /** JSON schema pattern of a numeric key (a shade). */
-const NUMERIC_KEY_PATTERN = String.raw`^\d+$`;
+const NUMERIC_KEY_PATTERN = `^${NUMERIC_PATTERN}$`;
 
 // -------------------------------------- INTERNALS --------------------------------------
 
@@ -82,7 +96,7 @@ function buildColorReferenceSchema(
   const colors = [...palette].filter(([name]) => isAllowedInScope(name, scope));
   const names = colors.map(([name]) => escapeRegExp(name)).join('|');
   const steps = [...OPACITY_STEPS.keys()];
-  const reference = `(?:${names})${LIGHTNESS_PATTERN}(?:/(?:${steps.join('|')}))?`;
+  const reference = `(?:${names})${LIGHTNESS_PATTERN}${OPACITY_PATTERN}`;
   const pair = allowPair ? `(?:${escapeRegExp(COLOR_PAIR_SEPARATOR)}${reference})?` : '';
   const pairHint = allowPair
     ? `, a color pair ("<color>${COLOR_PAIR_SEPARATOR}<color>", the one with the better contrast is used)`
@@ -98,7 +112,7 @@ function buildColorReferenceSchema(
       })),
     ],
     pattern: `^(?:${TRANSPARENT}|${reference}${pair})$`,
-    patternErrorMessage: `Expected a palette color allowed here ("<name>", "<name>${LIGHTNESS_SEPARATOR}<lightness>", "<name>/<opacity>" or "<name>${LIGHTNESS_SEPARATOR}<lightness>/<opacity>")${pairHint} or "${TRANSPARENT}". Allowed lightness: ${MIN_LIGHTNESS} to ${MAX_LIGHTNESS} (in % of the perceived lightness). Allowed opacity steps: ${steps.join(', ')}.`,
+    patternErrorMessage: `Expected a palette color allowed here ("<name>", "<name>${LIGHTNESS_SEPARATOR}<lightness>", "<name>${OPACITY_SEPARATOR}<opacity>" or "<name>${LIGHTNESS_SEPARATOR}<lightness>${OPACITY_SEPARATOR}<opacity>")${pairHint} or "${TRANSPARENT}". Allowed lightness: ${MIN_LIGHTNESS} to ${MAX_LIGHTNESS} (in % of the perceived lightness). Allowed opacity steps: ${steps.join(', ')}.`,
     type: 'string',
   };
 }
@@ -157,14 +171,15 @@ function buildColorsSchema(
  *
  * @param themeFile     File name of the theme source (only used for the schema title).
  * @param palette       The flattened palette of the theme source.
+ * @param scoped        Whether color scope restrictions apply to the palette (see `CompiledTheme.scoped`).
  * @param knownColors   All valid `colors` keys with their descriptions, or `undefined` to accept any key.
  */
 export function generateSourceSchema(
   themeFile: string,
   palette: Palette,
+  scoped: boolean,
   knownColors?: ColorDescriptions
 ): Record<string, unknown> {
-  const scoped = hasScopes(palette);
   const anyColor = { $ref: '#/definitions/colorReference' };
   const anyColorPair = { $ref: '#/definitions/colorPairReference' };
   const uiColor = scoped ? { $ref: '#/definitions/uiColorReference' } : anyColor;
@@ -266,7 +281,7 @@ export function generateSourceSchema(
             { $ref: '#/definitions/paletteGroup' },
           ],
         },
-        markdownDescription: `Colors referenced by name in \`colors\`, \`tokenColors\` and \`semanticTokenColors\`.\n\n- A hex color is a base color: the whole shade scale is generated from it, with shade \`${BASE_SHADE}\` set to the base. Every base must have the OKLCH lightness of shade \`${BASE_SHADE}\` (${TARGET_LIGHTNESS.get(BASE_SHADE)}), so all families look equally bright; the base decides the hue and saturation of the whole scale.\n- An object with numeric keys is a manual shade scale and must define every shade (\`${[...SHADES].join('`, `')}\`).\n- Other objects are groups of named colors (e.g., \`ansi\`, \`ui\`), whose values are \`#RRGGBB\` hex colors or the name of another palette color, optionally with a lightness modifier (e.g., \`"bg-hover": "ui-accent-bg${LIGHTNESS_SEPARATOR}94"\` – ${MIN_LIGHTNESS} to ${MAX_LIGHTNESS} % of its perceived lightness, for subtle variants in between the shades). Nested keys are joined with \`-\`.\n\nIf a \`ui\` group is defined, \`colors\` may only use \`ui-*\`, \`gray-*\` and \`ansi-*\` (except category keys like \`symbolIcon.*\`), and token colors may not use \`ui-*\`.`,
+        markdownDescription: `Colors referenced by name in \`colors\`, \`tokenColors\` and \`semanticTokenColors\`.\n\n- A hex color is a base color: the whole shade scale is generated from it, with shade \`${BASE_SHADE}\` set to the base. Every base must have the OKLCH lightness of shade \`${BASE_SHADE}\` (${TARGET_LIGHTNESS.get(BASE_SHADE)}), so all families look equally bright; The base decides the hue and saturation of the whole scale.\n- An object with numeric keys is a manual shade scale and must define every shade (\`${[...SHADES].join('`, `')}\`).\n- Other objects are groups of named colors (e.g., \`ansi\`, \`ui\`), whose values are \`#RRGGBB\` hex colors or the name of another palette color, optionally with a lightness modifier (e.g., \`"bg-hover": "ui-accent-bg${LIGHTNESS_SEPARATOR}94"\` – ${MIN_LIGHTNESS} to ${MAX_LIGHTNESS} % of its perceived lightness, for subtle variants in between the shades). Nested keys are joined with \`-\`.\n\nIf a \`ui\` group is defined, \`colors\` may only use \`ui-*\`, \`gray-*\` and \`ansi-*\` (except category keys like \`symbolIcon.*\`), and token colors may not use \`ui-*\`.`,
         propertyNames: { not: { pattern: NUMERIC_KEY_PATTERN } },
         type: 'object',
       },

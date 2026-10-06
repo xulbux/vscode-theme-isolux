@@ -15,7 +15,7 @@
 
 import type { BuildIssue } from '../types/index.ts';
 import { composite, contrastRatio, isHexColor } from '../utils/color.ts';
-import { isPlainObject } from '../utils/object.ts';
+import { colorKeyPath, forEachTokenColor, readColors } from '../utils/theme.ts';
 
 // ---------------------------------------- TYPES ----------------------------------------
 
@@ -48,6 +48,10 @@ const DEFAULT_SURFACE = 'editor.background';
 /** Fallback if the theme doesn't define `DEFAULT_SURFACE`. */
 const FALLBACK_SURFACE_HEX = '#000000';
 
+/**
+ * The foreground / background pairs to check, grouped by workbench area.
+ * Add a pair for every new foreground key that carries text, so its contrast is checked (and it may use a color pair).
+ */
 const CONTRAST_PAIRS: readonly ContrastPair[] = [
   // Editor:
   { background: 'editor.background', foreground: 'editor.foreground', min: TEXT },
@@ -156,6 +160,30 @@ const CONTRAST_PAIRS: readonly ContrastPair[] = [
   {
     background: 'statusBarItem.offlineBackground',
     foreground: 'statusBarItem.offlineForeground',
+    min: TEXT,
+    over: 'statusBar.background',
+  },
+  {
+    background: 'statusBarItem.remoteHoverBackground',
+    foreground: 'statusBarItem.remoteHoverForeground',
+    min: TEXT,
+    over: 'statusBar.background',
+  },
+  {
+    background: 'statusBarItem.errorHoverBackground',
+    foreground: 'statusBarItem.errorHoverForeground',
+    min: TEXT,
+    over: 'statusBar.background',
+  },
+  {
+    background: 'statusBarItem.warningHoverBackground',
+    foreground: 'statusBarItem.warningHoverForeground',
+    min: TEXT,
+    over: 'statusBar.background',
+  },
+  {
+    background: 'statusBarItem.offlineHoverBackground',
+    foreground: 'statusBarItem.offlineHoverForeground',
     min: TEXT,
     over: 'statusBar.background',
   },
@@ -313,41 +341,40 @@ function readColor(colors: Record<string, unknown>, key: string): string | undef
   return isHexColor(value) ? value : undefined;
 }
 
+/** Read the surface below translucent backgrounds without an explicit `over` (see `DEFAULT_SURFACE`). */
 function readSurface(colors: Record<string, unknown>): string {
   return readColor(colors, DEFAULT_SURFACE) ?? FALLBACK_SURFACE_HEX;
 }
 
 /**
- * Contrast ratio of a (possibly translucent) foreground on a (possibly translucent) background.
- */
-function measure(foreground: string, background: string, surface: string): number {
-  const solidBackground = composite(background, surface);
-  return contrastRatio(composite(foreground, solidBackground), solidBackground);
-}
-
-/**
- * Contrast ratio of `foreground` on the background of `pair`.
+ * Read the background of a contrast pair, blended over the surface it's drawn on.
  *
- * @param pair         The contrast pair to measure.
- * @param foreground   The foreground color (instead of the one set for `pair.foreground`).
- * @param colors       The resolved `colors` of the theme.
- * @param surface      Surface below translucent backgrounds without an explicit `over`.
- * @returns The contrast ratio, or `undefined` if the pair's background isn't set.
+ * @param pair      The contrast pair.
+ * @param colors    The resolved `colors` of the theme.
+ * @param surface   Surface below translucent backgrounds without an explicit `over` (see `readSurface`).
+ * @returns The opaque background, or `undefined` if the pair's background isn't set.
  */
-function measurePair(
+function readSolidBackground(
   pair: ContrastPair,
-  foreground: string,
   colors: Record<string, unknown>,
   surface: string
-): number | undefined {
+): string | undefined {
   const background = readColor(colors, pair.background);
   if (background === undefined) {
     return undefined;
   }
-  const below = readColor(colors, pair.over ?? DEFAULT_SURFACE) ?? surface;
-  return measure(foreground, background, below);
+  const below = pair.over === undefined ? surface : (readColor(colors, pair.over) ?? surface);
+  return composite(background, below);
 }
 
+/**
+ * Contrast ratio of a (possibly translucent) foreground on an opaque background.
+ */
+function measure(foreground: string, background: string): number {
+  return contrastRatio(composite(foreground, background), background);
+}
+
+/** Build the warning for a color below its minimum contrast ratio. */
 function contrastIssue(path: string, ratio: number, min: number, against: string): BuildIssue {
   return {
     message: `Low contrast: ${ratio.toFixed(2)}:1 against ${against} (minimum ${min}:1).`,
@@ -355,54 +382,37 @@ function contrastIssue(path: string, ratio: number, min: number, against: string
   };
 }
 
+/** Check every pair of `CONTRAST_PAIRS` whose foreground and background are both set. */
 function checkPairs(colors: Record<string, unknown>, surface: string): BuildIssue[] {
   const issues: BuildIssue[] = [];
   for (const pair of CONTRAST_PAIRS) {
     const foreground = readColor(colors, pair.foreground);
+    const background = readSolidBackground(pair, colors, surface);
     const ratio =
-      foreground === undefined ? undefined : measurePair(pair, foreground, colors, surface);
+      foreground === undefined || background === undefined
+        ? undefined
+        : measure(foreground, background);
     if (ratio !== undefined && ratio < pair.min) {
       issues.push(
-        contrastIssue(
-          `colors[${JSON.stringify(pair.foreground)}]`,
-          ratio,
-          pair.min,
-          `"${pair.background}"`
-        )
+        contrastIssue(colorKeyPath(pair.foreground), ratio, pair.min, `"${pair.background}"`)
       );
     }
   }
   return issues;
 }
 
+/** Check the foreground of every token color against the editor background. */
 function checkTokenColors(theme: Record<string, unknown>, editorBackground: string): BuildIssue[] {
   const issues: BuildIssue[] = [];
-  function check(foreground: unknown, path: string): void {
-    if (typeof foreground === 'string') {
-      const ratio = measure(foreground, editorBackground, editorBackground);
+  forEachTokenColor(theme, (target, key, path, role) => {
+    const foreground = target[key];
+    if (role === 'foreground' && isHexColor(foreground)) {
+      const ratio = measure(foreground, editorBackground);
       if (ratio < TOKEN) {
         issues.push(contrastIssue(path, ratio, TOKEN, `"${DEFAULT_SURFACE}"`));
       }
     }
-  }
-
-  if (Array.isArray(theme.tokenColors)) {
-    for (const [index, rule] of theme.tokenColors.entries()) {
-      if (isPlainObject(rule) && isPlainObject(rule.settings)) {
-        check(rule.settings.foreground, `tokenColors[${index}].settings.foreground`);
-      }
-    }
-  }
-  if (isPlainObject(theme.semanticTokenColors)) {
-    for (const [selector, value] of Object.entries(theme.semanticTokenColors)) {
-      const path = `semanticTokenColors[${JSON.stringify(selector)}]`;
-      if (isPlainObject(value)) {
-        check(value.foreground, `${path}.foreground`);
-      } else {
-        check(value, path);
-      }
-    }
-  }
+  });
   return issues;
 }
 
@@ -425,10 +435,12 @@ export function pickBestContrast(
   colors: Record<string, unknown>
 ): number | undefined {
   const surface = readSurface(colors);
-  const pairs = CONTRAST_PAIRS.filter(
-    (pair) => pair.foreground === key && readColor(colors, pair.background) !== undefined
-  );
-  if (pairs.length === 0) {
+  const targets = CONTRAST_PAIRS.flatMap((pair) => {
+    const background =
+      pair.foreground === key ? readSolidBackground(pair, colors, surface) : undefined;
+    return background === undefined ? [] : [{ background, min: pair.min }];
+  });
+  if (targets.length === 0) {
     return undefined;
   }
 
@@ -436,7 +448,7 @@ export function pickBestContrast(
   let bestScore = Number.NEGATIVE_INFINITY;
   for (const [index, candidate] of candidates.entries()) {
     const score = Math.min(
-      ...pairs.map((pair) => (measurePair(pair, candidate, colors, surface) ?? 0) / pair.min)
+      ...targets.map((target) => measure(candidate, target.background) / target.min)
     );
     if (score > bestScore) {
       bestIndex = index;
@@ -451,7 +463,7 @@ export function pickBestContrast(
  * @returns One warning per color pair below its minimum contrast ratio.
  */
 export function checkContrast(theme: Record<string, unknown>): BuildIssue[] {
-  const colors = isPlainObject(theme.colors) ? theme.colors : {};
+  const colors = readColors(theme);
   const surface = readSurface(colors);
   return [...checkPairs(colors, surface), ...checkTokenColors(theme, surface)];
 }

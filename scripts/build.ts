@@ -2,15 +2,24 @@
  * Build – Compiles the theme sources in `theme/` into the VS Code themes in `dist/`.
  *
  * Usage:
- *   node scripts/build.ts            Build all themes once (also runs as `vscode:prepublish`).
- *   node scripts/build.ts --watch    Rebuild a theme whenever its source changes.
+ *   node scripts/build.ts             Build all themes once (`pnpm run build`, also runs as `vscode:prepublish`).
+ *   node scripts/build.ts --strict    Build all themes once; Warnings fail the build as well (`pnpm run build:strict`).
+ *   pnpm run watch                    Rebuild all themes whenever a file in `theme/` or `scripts/` (or `package.json`)
+ *                                     changes, using Node's built-in watch mode (`node --watch-path=…`).
  *
  * The themes to build are read from `contributes.themes` in `package.json`:
  * every `./dist/<name>.json` theme path is built from `./theme/<name>.jsonc` (or `./theme/<name>.json`).
  * For sources with a `palette`, a JSON schema is also written to `dist/<name>.schema.json`.
+ * Other `.json` files directly in `dist/` (e.g., of a removed or renamed theme) are deleted.
+ *
+ * Problems (invalid references, duplicate keys, …) prevent a theme from being written. A failing theme never stops
+ * the others from being built; The exit code is `1` if any theme failed.
+ *
  * The known color keys are read from the locally installed VS Code on every build (see `core/colorIds.ts`), so unknown
  * keys are flagged (in the schema and as build warnings) for exactly that VS Code version. Without an installation,
  * any key is accepted. Palette themes are also checked for low-contrast color pairs (see `core/contrast.ts`).
+ * Warnings don't prevent a theme from being written, but in strict mode (`--strict`, enabled automatically if the
+ * `CI` environment variable is set) they're reported as errors and fail the build.
  */
 
 import fs from 'node:fs';
@@ -20,29 +29,63 @@ import { checkColorKeys } from './core/colorKeys.ts';
 import { checkContrast } from './core/contrast.ts';
 import { generateSourceSchema } from './core/schema.ts';
 import { compileTheme } from './core/theme.ts';
-import type { ColorDescriptions } from './types/index.ts';
+import type { BuildIssue, ColorDescriptions } from './types/index.ts';
 import { parseJsonc } from './utils/jsonc.ts';
 import { logError, logInfo, logSuccess, logWarn } from './utils/logger.ts';
+import { errorMessage, pluralize } from './utils/strings.ts';
 
 // ---------------------------------------- TYPES ----------------------------------------
 
+/** A theme contributed in `package.json`. */
+interface ManifestTheme {
+  /** The theme's display name. */
+  label?: string;
+  /** Path to the built theme (e.g., `./dist/xulbux-pro.json`). */
+  path?: string;
+}
+
+/** The contributions in `package.json` relevant to the build. */
+interface ManifestContributions {
+  /** The contributed themes, whose paths point to the built themes in `dist/`. */
+  themes?: ManifestTheme[];
+}
+
 /** The parts of `package.json` relevant to the build. */
 interface Manifest {
-  /** The contributed themes, whose paths point to the built themes in `dist/`. */
-  contributes?: { themes?: { path?: string }[] };
+  /** The extension's contributions. */
+  contributes?: ManifestContributions;
+}
+
+/** Options shared by every theme of a build. */
+interface BuildOptions {
+  /** All valid `colors` keys (with their descriptions), or `undefined` if they couldn't be read. */
+  knownColors: ColorDescriptions | undefined;
+  /** Whether warnings fail the build as well (see `isStrictMode`). */
+  strict: boolean;
 }
 
 // ---------------------------------------- CONSTS ---------------------------------------
 
+/** The repository root. */
 const ROOT_DIR = path.resolve(import.meta.dirname, '..');
-const SOURCE_DIR = path.join(ROOT_DIR, 'theme');
-const DIST_DIR = path.join(ROOT_DIR, 'dist');
 
-/** How long to wait after the last change of a source file before rebuilding it (ms). */
-const WATCH_DEBOUNCE = 100;
+/** The folder of the theme sources. */
+const SOURCE_DIR = path.join(ROOT_DIR, 'theme');
+
+/** The folder of the built themes (and their schemas). */
+const DIST_DIR = path.join(ROOT_DIR, 'dist');
 
 /** Accepted source file extensions, in order of precedence. */
 const SOURCE_EXTENSIONS = ['.jsonc', '.json'] as const;
+
+/** Extension of the generated source schemas in `dist/`. */
+const SCHEMA_EXTENSION = '.schema.json';
+
+/** Command line flag that enables strict mode. */
+const STRICT_FLAG = '--strict';
+
+/** Values of the `CI` environment variable that don't enable strict mode (compared in lowercase). */
+const CI_DISABLED_VALUES: ReadonlySet<string> = new Set(['', '0', 'false']);
 
 // -------------------------------------- INTERNALS --------------------------------------
 
@@ -55,8 +98,10 @@ function getThemeNames(): string[] {
   const names: string[] = [];
 
   for (const theme of manifest.contributes?.themes ?? []) {
-    const themePath = path.resolve(ROOT_DIR, theme.path ?? '');
-    if (path.dirname(themePath) === DIST_DIR && path.extname(themePath) === '.json') {
+    const themePath = theme.path === undefined ? undefined : path.resolve(ROOT_DIR, theme.path);
+    if (themePath === undefined) {
+      logInfo(`Skipping theme "${theme.label ?? '(unnamed)'}" – it has no "path".`);
+    } else if (path.dirname(themePath) === DIST_DIR && path.extname(themePath) === '.json') {
       names.push(path.basename(themePath, '.json'));
     } else {
       logInfo(`Skipping "${theme.path}" – only "./dist/<name>.json" themes are built.`);
@@ -66,12 +111,11 @@ function getThemeNames(): string[] {
 }
 
 /**
- * Strip a source extension from a file name.
- * @returns The theme name, or `undefined` if the file doesn't have a source extension.
+ * Check whether strict mode is enabled (the `--strict` flag, or a `CI` environment variable).
  */
-function toThemeName(filename: string): string | undefined {
-  const extension = SOURCE_EXTENSIONS.find((ext) => filename.endsWith(ext));
-  return extension ? filename.slice(0, -extension.length) : undefined;
+function isStrictMode(): boolean {
+  const ci = process.env.CI?.trim().toLowerCase() ?? '';
+  return process.argv.includes(STRICT_FLAG) || !CI_DISABLED_VALUES.has(ci);
 }
 
 /**
@@ -94,6 +138,7 @@ function findSourceFile(name: string): string {
   return existing[0];
 }
 
+/** Write `data` as pretty-printed JSON (with a trailing newline). */
 function writeJson(file: string, data: unknown): void {
   fs.writeFileSync(file, `${JSON.stringify(data, undefined, 2)}\n`);
 }
@@ -106,121 +151,126 @@ function readKnownColors(): ColorDescriptions | undefined {
   try {
     const { colors, extensions, vscodeVersion } = readVsCodeColorIds();
     const fromExtensions =
-      extensions.length > 0 ? `, incl. ${extensions.length} installed extensions` : '';
+      extensions.length > 0 ? `, incl. ${pluralize(extensions.length, 'installed extension')}` : '';
     logInfo(
       `Known color keys: ${Object.keys(colors).length} (VS Code ${vscodeVersion}${fromExtensions}).`
     );
     return colors;
   } catch (error) {
-    logWarn(
-      `Unknown color keys can't be flagged – ${error instanceof Error ? error.message : String(error)}`
-    );
+    logWarn(`Unknown color keys can't be flagged – ${errorMessage(error)}`);
     return undefined;
   }
 }
 
 /**
- * Compile a single theme source and write the result (and its schema) to `dist/`.
- * @returns Whether the theme was built successfully.
+ * Log the warnings of a theme (as errors in strict mode).
+ *
+ * @param sourceFile   File name of the theme source (for the log message).
+ * @param warnings     The warnings found in the compiled theme.
+ * @param options      The build options (see `BuildOptions.strict`).
+ * @returns Whether the theme still counts as built successfully.
  */
-function buildTheme(name: string, knownColors: ColorDescriptions | undefined): boolean {
-  let sourceFile = `${name}.json`;
-  let source: unknown = undefined;
-  try {
-    sourceFile = findSourceFile(name);
-    source = parseJsonc(fs.readFileSync(path.join(SOURCE_DIR, sourceFile), 'utf8'));
-  } catch (error) {
-    logError(`${sourceFile}: ${error instanceof Error ? error.message : String(error)}`);
+function reportWarnings(
+  sourceFile: string,
+  warnings: readonly BuildIssue[],
+  options: BuildOptions
+): boolean {
+  if (warnings.length === 0) {
+    return true;
+  }
+  if (options.strict) {
+    logError(`${sourceFile}: ${pluralize(warnings.length, 'warning')} (strict mode)`, warnings);
     return false;
   }
-
-  const { theme, palette, resolvedCount, issues } = compileTheme(source);
-
-  // The schema is written even if there are issues, so the editor can point them out.
-  if (palette) {
-    writeJson(
-      path.join(DIST_DIR, `${name}.schema.json`),
-      generateSourceSchema(sourceFile, palette, knownColors)
-    );
-  }
-
-  if (issues.length > 0) {
-    logError(
-      `${sourceFile}: ${issues.length} problem${issues.length === 1 ? '' : 's'} found`,
-      issues
-    );
-    return false;
-  }
-
-  writeJson(path.join(DIST_DIR, `${name}.json`), theme);
-  logSuccess(
-    palette
-      ? `${sourceFile} (${palette.size} palette colors, ${resolvedCount} references resolved)`
-      : `${sourceFile} (copied – no palette)`
-  );
-
-  // Only palette themes are checked; The un-migrated themes are copied as they are.
-  const warnings = palette
-    ? [...(knownColors ? checkColorKeys(theme, knownColors) : []), ...checkContrast(theme)]
-    : [];
-  if (warnings.length > 0) {
-    logWarn(
-      `${sourceFile}: ${warnings.length} warning${warnings.length === 1 ? '' : 's'}`,
-      warnings
-    );
-  }
+  logWarn(`${sourceFile}: ${pluralize(warnings.length, 'warning')}`, warnings);
   return true;
 }
 
 /**
- * Build all themes.
- * @returns Whether every theme was built successfully.
+ * Compile a single theme source and write the result (and its schema) to `dist/`.
+ * Every error (including failed writes, e.g., a locked file) is logged instead of thrown.
+ * @returns Whether the theme was built successfully.
  */
-function buildAll(names: readonly string[], knownColors: ColorDescriptions | undefined): boolean {
-  let success = true;
-  for (const name of names) {
-    success = buildTheme(name, knownColors) && success;
+function buildTheme(name: string, options: BuildOptions): boolean {
+  let label = `theme/${name}`;
+  try {
+    const sourceFile = findSourceFile(name);
+    label = sourceFile;
+    const issues: BuildIssue[] = [];
+    const source = parseJsonc(fs.readFileSync(path.join(SOURCE_DIR, sourceFile), 'utf8'), issues);
+    const { theme, palette, scoped, resolvedCount, issues: compileIssues } = compileTheme(source);
+    issues.push(...compileIssues);
+
+    // The schema is written even if there are issues, so the editor can point them out.
+    if (palette) {
+      writeJson(
+        path.join(DIST_DIR, `${name}${SCHEMA_EXTENSION}`),
+        generateSourceSchema(sourceFile, palette, scoped, options.knownColors)
+      );
+    }
+
+    if (issues.length > 0) {
+      logError(`${sourceFile}: ${pluralize(issues.length, 'problem')} found`, issues);
+      return false;
+    }
+
+    writeJson(path.join(DIST_DIR, `${name}.json`), theme);
+    logSuccess(
+      palette
+        ? `${sourceFile} (${palette.size} palette colors, ${resolvedCount} references resolved)`
+        : `${sourceFile} (copied – no palette)`
+    );
+
+    // Only palette themes are checked; The un-migrated themes are copied as they are.
+    const { knownColors } = options;
+    const warnings = palette
+      ? [...(knownColors ? checkColorKeys(theme, knownColors) : []), ...checkContrast(theme)]
+      : [];
+    return reportWarnings(sourceFile, warnings, options);
+  } catch (error) {
+    logError(`${label}: ${errorMessage(error)}`);
+    return false;
   }
-  return success;
 }
 
 /**
- * Watch the source folder and rebuild a theme whenever its source file changes.
+ * Delete the `.json` files directly in `dist/` that don't belong to one of the themes
+ * (`<name>.json` / `<name>.schema.json`), e.g., left over from a removed or renamed theme.
  */
-function watch(names: readonly string[], knownColors: ColorDescriptions | undefined): void {
-  const timers = new Map<string, NodeJS.Timeout>();
+function removeStaleFiles(names: readonly string[]): void {
+  const expected = new Set(names.flatMap((name) => [`${name}.json`, `${name}${SCHEMA_EXTENSION}`]));
+  const stale = fs
+    .readdirSync(DIST_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.json') && !expected.has(entry.name));
 
-  // Watch the folder rather than the files, since many editors save by replacing the file.
-  fs.watch(SOURCE_DIR, (_event, filename) => {
-    const name = filename ? toThemeName(filename) : undefined;
-    if (name === undefined || !names.includes(name)) {
-      return;
+  for (const { name } of stale) {
+    try {
+      fs.rmSync(path.join(DIST_DIR, name));
+      logInfo(`Removed stale "dist/${name}".`);
+    } catch (error) {
+      logWarn(`Couldn't remove stale "dist/${name}" – ${errorMessage(error)}`);
     }
-    clearTimeout(timers.get(name));
-    timers.set(
-      name,
-      setTimeout(() => {
-        timers.delete(name);
-        buildTheme(name, knownColors);
-      }, WATCH_DEBOUNCE)
-    );
-  });
-
-  logInfo('Watching for changes…');
+  }
 }
 
 // ----------------------------------------- MAIN ----------------------------------------
 
+/** Build every theme listed in `package.json`; Sets the exit code to `1` if any of them failed. */
 function main(): void {
   const names = getThemeNames();
-  const knownColors = readKnownColors();
+  const options: BuildOptions = { knownColors: readKnownColors(), strict: isStrictMode() };
   fs.mkdirSync(DIST_DIR, { recursive: true });
 
-  const success = buildAll(names, knownColors);
+  let success = true;
+  for (const name of names) {
+    success = buildTheme(name, options) && success;
+  }
 
-  if (process.argv.includes('--watch')) {
-    watch(names, knownColors);
-  } else if (!success) {
+  // Without any theme names, `package.json` is probably broken, so nothing is deleted.
+  if (names.length > 0) {
+    removeStaleFiles(names);
+  }
+  if (!success) {
     process.exitCode = 1;
   }
 }

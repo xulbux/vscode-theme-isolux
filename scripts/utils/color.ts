@@ -2,10 +2,11 @@
  * Color math – Conversions between sRGB hex and OKLCH, gamut mapping and WCAG contrast.
  *
  * OKLCH (https://bottosson.github.io/posts/oklab/) is a perceptual color space:
- * - `l` – Perceived lightness (`0` = black, `1` = white)
+ * - `l` – OKLCH lightness (`0` = black, `1` = white)
  * - `c` – Chroma (colorfulness, `0` = gray)
  * - `h` – Hue angle in degrees
- * Equal steps in `l` look like equal steps in brightness, regardless of the hue.
+ * Equal steps in `l` look like nearly equal steps in brightness, regardless of the hue; Only very dark colors look
+ * lighter than their `l`, which the toe-corrected perceived lightness `Lr` fixes (see `toe`).
  *
  * Gamut checks support sRGB (what themes can show) and Display P3 (the wider gamut of e.g., Tailwind v4's palette).
  */
@@ -14,7 +15,16 @@ import type { Gamut, Oklch } from '../types/index.ts';
 
 // ---------------------------------------- TYPES ----------------------------------------
 
+/** The three channels of an RGB color (gamma-encoded `0`–`255`, or linear light). */
 type Rgb = [r: number, g: number, b: number];
+
+/** The channels of a parsed hex color. */
+interface ParsedHex {
+  /** The gamma-encoded sRGB channels (`0`–`255`). */
+  rgb: Rgb;
+  /** The opacity (`0`–`1`, `1` for colors without an alpha channel). */
+  alpha: number;
+}
 
 // ---------------------------------------- CONSTS ---------------------------------------
 
@@ -44,10 +54,22 @@ const TOE_K2 = 0.03;
 /** See `TOE_K1` (chosen so that white stays at `1`). */
 const TOE_K3 = (1 + TOE_K1) / (1 + TOE_K2);
 
+/** Pattern of a single hex digit (both cases are listed, as JSON schema patterns can't use flags). */
+const HEX_DIGIT_PATTERN = '[0-9A-Fa-f]';
+
+/** Pattern of an opaque `#RRGGBB` hex color (without anchors). */
+export const OPAQUE_HEX_PATTERN = `#${HEX_DIGIT_PATTERN}{6}`;
+
 // ------------------------------------ REGEX PATTERNS -----------------------------------
 
 /** Matches a `#RRGGBB` or `#RRGGBBAA` hex color. */
-const HEX_RX = /^#(?<rgb>[0-9A-F]{6})(?<alpha>[0-9A-F]{2})?$/i;
+const HEX_RX = new RegExp(`^#(?<rgb>${HEX_DIGIT_PATTERN}{6})(?<alpha>${HEX_DIGIT_PATTERN}{2})?$`);
+
+/** Matches an opaque `#RRGGBB` hex color. */
+const OPAQUE_HEX_RX = new RegExp(`^${OPAQUE_HEX_PATTERN}$`);
+
+/** Matches a short `#RGB` or `#RGBA` hex color. */
+const SHORT_HEX_RX = new RegExp(`^#${HEX_DIGIT_PATTERN}{3,4}$`);
 
 /** Matches a CSS `oklch()` color with a percentage lightness (e.g., `oklch(70.4% 0.191 22.216)`). */
 const OKLCH_RX =
@@ -55,7 +77,11 @@ const OKLCH_RX =
 
 // -------------------------------------- INTERNALS --------------------------------------
 
-function parseHex(hex: string): { rgb: Rgb; alpha: number } {
+/**
+ * Split a `#RRGGBB` or `#RRGGBBAA` hex color into its channels.
+ * @throws {Error} If `hex` isn't such a hex color.
+ */
+function parseHex(hex: string): ParsedHex {
   const match = HEX_RX.exec(hex);
   const rgb = match?.groups?.rgb;
   if (rgb === undefined) {
@@ -68,6 +94,7 @@ function parseHex(hex: string): { rgb: Rgb; alpha: number } {
   };
 }
 
+/** Convert a channel (`0`–`1`, clamped) to a two-digit uppercase hex byte. */
 function toHexByte(channel: number): string {
   return Math.round(Math.min(1, Math.max(0, channel)) * 255)
     .toString(16)
@@ -83,6 +110,11 @@ function toLinear(channel: number): number {
 /** Linear light → sRGB gamma-encoded channel (`0`–`1`). */
 function fromLinear(channel: number): number {
   return channel <= 0.0031308 ? channel * 12.92 : 1.055 * channel ** (1 / 2.4) - 0.055;
+}
+
+/** Hex color → linear sRGB channels (`0`–`1`, the alpha channel of `#RRGGBBAA` is ignored). */
+function toLinearRgb(hex: string): Rgb {
+  return parseHex(hex).rgb.map((channel) => toLinear(channel / 255)) as Rgb;
 }
 
 /** OKLCH → linear sRGB (channels may be outside `[0, 1]` for out-of-gamut colors). */
@@ -130,6 +162,14 @@ function toeInverse(lr: number): number {
   return (lr * lr + TOE_K1 * lr) / (TOE_K3 * (lr + TOE_K2));
 }
 
+/**
+ * WCAG 2 relative luminance of an opaque color.
+ */
+function relativeLuminance(hex: string): number {
+  const [r, g, b] = toLinearRgb(hex);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
 // -------------------------------------- PUBLIC API -------------------------------------
 
 /** Check if a value is a `#RRGGBB` or `#RRGGBBAA` hex color. */
@@ -137,11 +177,28 @@ export function isHexColor(value: unknown): value is string {
   return typeof value === 'string' && HEX_RX.test(value);
 }
 
+/** Check if a value is an opaque `#RRGGBB` hex color. */
+export function isOpaqueHexColor(value: unknown): value is string {
+  return typeof value === 'string' && OPAQUE_HEX_RX.test(value);
+}
+
+/**
+ * Normalize any hex color notation (`#RGB`, `#RGBA`, `#RRGGBB` or `#RRGGBBAA`) to uppercase `#RRGGBB` / `#RRGGBBAA`.
+ * @returns The normalized color, or `undefined` if `value` isn't a hex color.
+ */
+export function normalizeHex(value: string): string | undefined {
+  if (SHORT_HEX_RX.test(value)) {
+    // Every digit is doubled (e.g., `#ABC` → `#AABBCC`).
+    return value.replaceAll(/[^#]/g, '$&$&').toUpperCase();
+  }
+  return isHexColor(value) ? value.toUpperCase() : undefined;
+}
+
 /**
  * Convert an opaque `#RRGGBB` hex color to OKLCH (the alpha channel of `#RRGGBBAA` is ignored).
  */
 export function hexToOklch(hex: string): Oklch {
-  const [r, g, b] = parseHex(hex).rgb.map((channel) => toLinear(channel / 255)) as Rgb;
+  const [r, g, b] = toLinearRgb(hex);
 
   const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
   const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
@@ -230,14 +287,6 @@ export function composite(color: string, background: string): string {
     return (channel * fg.alpha + under * (1 - fg.alpha)) / 255;
   });
   return `#${mixed.map((channel) => toHexByte(channel)).join('')}`;
-}
-
-/**
- * WCAG 2 relative luminance of an opaque color.
- */
-export function relativeLuminance(hex: string): number {
-  const [r, g, b] = parseHex(hex).rgb.map((channel) => toLinear(channel / 255)) as Rgb;
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
 /**
