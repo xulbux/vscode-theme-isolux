@@ -1,23 +1,29 @@
-import type { Palette } from './palette.ts';
+import type { Variant } from './tokens.ts';
 
-/** A problem found while compiling a theme source, pointing to the offending JSON location. */
+/** A problem found while building a theme, pointing to the offending location. */
 export interface BuildIssue {
-  /** JSON path to the offending value (e.g., `colors["editor.background"]`). */
+  /** Path to the offending value (e.g., `colors["editor.background"]` or `ui.button.hover`). */
   path: string;
   /** Human-readable description of the problem. */
   message: string;
 }
 
-/** The result of compiling a theme source. */
+/** Options of `compileTheme`. */
+export interface CompileOptions {
+  /** The theme's display name (its `label` in `package.json`). */
+  name: string;
+  /** The variant to compile. */
+  variant: Variant;
+}
+
+/** The result of compiling a theme source for one theme variant. */
 export interface CompiledTheme {
   /** The VS Code theme, ready to be written to `dist/`. */
   theme: Record<string, unknown>;
-  /** The flattened palette, or `undefined` if the source doesn't use the palette system. */
-  palette: Palette | undefined;
-  /** Whether color scope restrictions apply to the palette (see `hasScopes`). */
-  scoped: boolean;
-  /** Number of color references that were resolved to hex colors. */
+  /** Number of token references that were resolved to hex colors. */
   resolvedCount: number;
+  /** Names of every token referenced by the source. */
+  referenced: ReadonlySet<string>;
   /** Every problem found while compiling (the theme must not be written if this isn't empty). */
   issues: BuildIssue[];
 }

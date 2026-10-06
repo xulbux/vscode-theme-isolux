@@ -1,408 +1,138 @@
 /**
- * Palette – Flattens a theme's nested `palette` object and resolves color references against it.
+ * Palette – Builds the typed palette (`color.violet[400]`, …) from the definition in `theme/palette.ts`.
  *
- * Palette definition (inside the theme source):
- * ```jsonc
- * "palette": {
- *   "violet": "#AA94FF",                              // → `violet-50` … `violet-950` (generated, `violet-400` = base)
- *   "gray": { "50": "#FAFAFA", …, "950": "#000000" }, // → `gray-50` … `gray-950` (manual, all shades required)
- *   "ansi": { "magenta": "violet-400" },              // → `ansi-magenta` (alias of another color)
- *   "ui": { "accent": { "base": "violet-400" } }      // → `ui-accent-base` (UI role, see `scopes.ts`)
- * }
+ * Palette definition:
+ * ```ts
+ * export const color = definePalette({
+ *   gray: { 50: '#FAFAFA', …, 950: '#000000' }, // Manual shade scale (every shade required).
+ *   violet: '#AA94FF',                          // Base color → `violet[50]` … `violet[950]` (generated, `400` = base).
+ * });
  * ```
- * - A top-level hex color is a base color: the whole shade scale is generated from it (see `shades.ts`).
- * - An object with numeric keys is a manual shade scale and must define every one of the Tailwind `SHADES`.
- * - Other objects are groups of named colors. Nested keys are joined with `-`.
- * - Values inside objects are either opaque `#RRGGBB` hex colors or the name of another palette color (an alias).
- *   Aliases can scale the lightness (e.g., `"bg-hover": "ui-accent-bg%94"`), so derived colors follow their source.
+ * - A hex color is a base color: the whole shade scale is generated from it (see `shades.ts`).
+ * - An object is a manual shade scale and must define exactly the Tailwind `SHADES`.
+ * - The palette is the only place for hex colors. Every color handed to the token definitions is a `ThemeColor`
+ *   created here (or derived from one, see `tokens.ts`); The build rejects any other value.
  *
- * Color references (inside `colors`, `tokenColors` and `semanticTokenColors`):
- * - `violet-400`        – The palette color as-is
- * - `violet-400/20`     – The palette color at one of the allowed `OPACITY_STEPS` (in %)
- * - `violet-400%90`     – The palette color with its perceived lightness (the toe-corrected OKLCH lightness `Lr`,
- *                         see `scaleLightness`) scaled to 90 % (`MIN_LIGHTNESS` – `MAX_LIGHTNESS`),
- *                         for subtle variants (e.g., hover colors) in between the shades
- * - `violet-400%90/20`  – Both (the lightness is scaled first)
- * - `transparent`       – Fully transparent
- *
- * Color pairs (only for the foreground keys of `CONTRAST_PAIRS` in `contrast.ts`):
- * - `gray-900|gray-50` – Whichever of the two references has the better contrast against the key's background
- *
- * The syntax patterns (`NAME_PATTERN`, …) are shared with the generated source schema (see `schema.ts`).
+ * Problems are collected and thrown together as one error when the palette is defined (i.e., imported).
  */
 
-import type { BuildIssue, ColorResolution, Palette } from '../types/index.ts';
-import { isOpaqueHexColor, normalizeHex, scaleLightness } from '../utils/color.ts';
+import type { Palette, PaletteDefinition, Shade, ShadeScale, ThemeColor } from '../types/index.ts';
+import { isOpaqueHexColor } from '../utils/color.ts';
 import { isPlainObject } from '../utils/object.ts';
-import { didYouMean, escapeRegExp, integerRangePattern } from '../utils/strings.ts';
 import { generateShades, TARGET_LIGHTNESS, validateBaseColor } from './shades.ts';
 
 // ---------------------------------------- CONSTS ---------------------------------------
 
 /**
- * Allowed opacity steps (in %), mapped to their hex alpha byte.
- * Restricting the steps keeps transparency levels consistent across the whole theme.
- */
-export const OPACITY_STEPS: ReadonlyMap<number, string> = new Map([
-  [5, '0D'],
-  [10, '1A'],
-  [15, '26'],
-  [20, '33'],
-  [25, '40'],
-  [30, '4D'],
-  [40, '66'],
-  [50, '80'],
-  [60, '99'],
-  [70, 'B3'],
-  [80, 'CC'],
-  [90, 'E6'],
-]);
-
-/**
- * Lowest allowed lightness modifier (in % of the color's perceived lightness, see `scaleLightness`).
- * Lightness modifiers are meant for subtle variants; Bigger differences should use another shade.
- */
-export const MIN_LIGHTNESS = 50;
-
-/** Highest allowed lightness modifier (in % of the color's perceived lightness, see `scaleLightness`). */
-export const MAX_LIGHTNESS = 150;
-
-/** Keyword for a fully transparent color. */
-export const TRANSPARENT = 'transparent';
-
-/** Separates the two references of a color pair (e.g., `gray-900|gray-50`). */
-export const COLOR_PAIR_SEPARATOR = '|';
-
-/** Separates a palette color name from its lightness modifier (e.g., `violet-400%90`). */
-export const LIGHTNESS_SEPARATOR = '%';
-
-/** Separates a palette color name (or lightness modifier) from its opacity step (e.g., `violet-400/20`). */
-export const OPACITY_SEPARATOR = '/';
-
-/**
- * Allowed numeric shade keys (the Tailwind steps).
+ * Allowed shade steps (the Tailwind steps).
  * Restricting the shades keeps the palette small and prevents near-duplicate in-between colors.
  */
-export const SHADES: ReadonlySet<string> = new Set([...TARGET_LIGHTNESS.keys()].map(String));
+export const SHADES: readonly Shade[] = [...TARGET_LIGHTNESS.keys()] as Shade[];
 
-/** The hex color `TRANSPARENT` resolves to. */
-const TRANSPARENT_HEX = '#00000000';
-
-/** The lightness modifier that leaves a color unchanged (in %). */
-const NEUTRAL_LIGHTNESS = 100;
-
-/** Pattern of a single palette key (lowercase letters and digits, joined by dashes; without anchors). */
-const NAME_SEGMENT_PATTERN = '[a-z0-9]+(?:-[a-z0-9]+)*';
-
-/** Pattern of a full palette color name (like a key, but starting with a letter; without anchors). */
-export const NAME_PATTERN = '[a-z][a-z0-9]*(?:-[a-z0-9]+)*';
-
-/** Pattern of a numeric key, i.e., a shade (without anchors). */
-export const NUMERIC_PATTERN = String.raw`\d+`;
-
-/**
- * Pattern of an allowed lightness modifier value (`MIN_LIGHTNESS` – `MAX_LIGHTNESS`, except `NEUTRAL_LIGHTNESS`;
- * without anchors). The build itself accepts any number, so it can explain why a value isn't allowed.
- */
-export const LIGHTNESS_VALUE_PATTERN = integerRangePattern(MIN_LIGHTNESS, MAX_LIGHTNESS, [
-  NEUTRAL_LIGHTNESS,
-]);
-
-/**
- * Pattern of an allowed opacity value (one of the `OPACITY_STEPS`; without anchors).
- * The build itself accepts any number, so it can explain why a value isn't allowed.
- */
-export const OPACITY_VALUE_PATTERN = `(?:${[...OPACITY_STEPS.keys()].join('|')})`;
+/** Every `ThemeColor` created by `createThemeColor` (to tell them apart from hand-written objects). */
+const THEME_COLORS = new WeakSet<object>();
 
 // ------------------------------------ REGEX PATTERNS -----------------------------------
 
-/** Matches a single palette key (lowercase letters and digits, joined by dashes). */
-const NAME_SEGMENT_RX = new RegExp(`^${NAME_SEGMENT_PATTERN}$`);
-
-/** Matches a full palette color name (like a key, but starting with a letter). */
-const NAME_RX = new RegExp(`^${NAME_PATTERN}$`);
-
-/** Matches an alias value (`<name>` or `<name>%<lightness>`). */
-const ALIAS_RX = new RegExp(
-  String.raw`^(?<name>${NAME_PATTERN})(?:${escapeRegExp(LIGHTNESS_SEPARATOR)}(?<lightness>\d+))?$`
-);
-
-/** Matches a color reference (`<name>`, optionally followed by `%<lightness>` and / or `/<opacity>`). */
-const REFERENCE_RX = new RegExp(
-  String.raw`^(?<name>${NAME_PATTERN})(?:${escapeRegExp(LIGHTNESS_SEPARATOR)}(?<lightness>\d+))?(?:${escapeRegExp(OPACITY_SEPARATOR)}(?<opacity>\d+))?$`
-);
-
-/** Matches a numeric key (a shade). */
-const NUMERIC_RX = new RegExp(`^${NUMERIC_PATTERN}$`);
+/** Matches a palette family name (lowercase letters and digits, starting with a letter). */
+const FAMILY_NAME_RX = /^[a-z][a-z0-9]*$/;
 
 // -------------------------------------- INTERNALS --------------------------------------
 
-/** Build the error message for an unknown palette color, suggesting the closest known name. */
-function unknownColorMessage(name: string, knownNames: Iterable<string>): string {
-  return `Unknown palette color "${name}".${didYouMean(name, knownNames)}`;
+/** Create a frozen color and register it, so `isThemeColor` accepts it. */
+function registerColor(name: string, hex: string): ThemeColor {
+  const color: ThemeColor = Object.freeze({ hex, name });
+  THEME_COLORS.add(color);
+  return color;
+}
+
+/** Build a shade scale from `#RRGGBB` hex colors by shade. */
+function toScale(family: string, hexes: ReadonlyMap<Shade, string>): ShadeScale {
+  return Object.freeze(
+    Object.fromEntries(
+      SHADES.map((shade) => [shade, registerColor(`${family}-${shade}`, hexes.get(shade) ?? '')])
+    )
+  ) as ShadeScale;
 }
 
 /**
- * Apply an optional lightness modifier (in %, see `MIN_LIGHTNESS` / `MAX_LIGHTNESS`) to an opaque color.
- * @returns The adjusted `#RRGGBB` color, or an error message if the modifier isn't allowed.
+ * Build the shade scale of a single palette family.
+ * @returns The scale, or `undefined` if the definition is invalid (the problem is appended to `problems` then).
  */
-function applyLightness(hex: string, lightness: string | undefined): ColorResolution {
-  if (lightness === undefined) {
-    return { hex, ok: true };
+function buildScale(family: string, value: unknown, problems: string[]): ShadeScale | undefined {
+  if (typeof value === 'string') {
+    if (!isOpaqueHexColor(value)) {
+      problems.push(`"${family}": Expected an opaque "#RRGGBB" base color, got "${value}".`);
+      return undefined;
+    }
+    const baseError = validateBaseColor(value);
+    if (baseError !== undefined) {
+      problems.push(`"${family}": ${baseError}`);
+      return undefined;
+    }
+    return toScale(family, generateShades(value) as Map<Shade, string>);
   }
-  const percent = Number(lightness);
-  if (percent === NEUTRAL_LIGHTNESS) {
-    return {
-      message: `Lightness "${LIGHTNESS_SEPARATOR}${lightness}" has no effect – remove it.`,
-      ok: false,
-    };
-  }
-  if (percent < MIN_LIGHTNESS || percent > MAX_LIGHTNESS) {
-    return {
-      message: `Lightness "${LIGHTNESS_SEPARATOR}${lightness}" is not allowed – use ${MIN_LIGHTNESS} to ${MAX_LIGHTNESS} (in % of the color's perceived lightness); For bigger differences, use another shade.`,
-      ok: false,
-    };
-  }
-  return { hex: scaleLightness(hex, percent / 100), ok: true };
-}
 
-/** Add a raw palette entry by its flat name, reporting a duplicate name instead of overwriting it. */
-function addEntry(
-  name: string,
-  value: string,
-  entries: Map<string, string>,
-  issues: BuildIssue[]
-): void {
-  if (entries.has(name)) {
-    issues.push({ message: `Duplicate palette color "${name}".`, path: `palette.${name}` });
-  } else {
-    entries.set(name, value);
-  }
-}
-
-/**
- * Check that an object with numeric keys (a manual shade scale) defines every shade and nothing else.
- * @returns An error message, or `undefined` if the object isn't a shade scale or is complete.
- */
-function validateShadeScale(node: Record<string, unknown>): string | undefined {
-  const keys = Object.keys(node);
-  if (!keys.some((key) => NUMERIC_RX.test(key))) {
+  if (!isPlainObject(value)) {
+    problems.push(`"${family}": Expected a base color or a shade scale.`);
     return undefined;
   }
-  const named = keys.filter((key) => !NUMERIC_RX.test(key));
-  if (named.length > 0) {
-    return `A shade scale can't contain named colors (${named.map((key) => `"${key}"`).join(', ')}) – move them into a separate group.`;
+  const keys = Object.keys(value);
+  const invalid = keys.filter((key) => !SHADES.some((shade) => String(shade) === key));
+  const missing = SHADES.filter((shade) => !(String(shade) in value));
+  const nonHex = SHADES.filter(
+    (shade) => String(shade) in value && !isOpaqueHexColor(value[shade])
+  );
+  if (invalid.length > 0 || missing.length > 0 || nonHex.length > 0) {
+    problems.push(
+      `"${family}": A manual shade scale must define every shade (${SHADES.join(', ')}) as an opaque "#RRGGBB" color – or use a single base color instead to generate all shades.${invalid.length > 0 ? ` Not allowed: ${invalid.join(', ')}.` : ''}${missing.length > 0 ? ` Missing: ${missing.join(', ')}.` : ''}${nonHex.length > 0 ? ` Invalid: ${nonHex.join(', ')}.` : ''}`
+    );
+    return undefined;
   }
-  const missing = [...SHADES].filter((shade) => !(shade in node));
-  if (missing.length > 0) {
-    return `A manual shade scale must define every shade (missing: ${missing.join(', ')}) – or use a single base color instead to generate all shades.`;
-  }
-  return undefined;
-}
-
-/**
- * Recursively walk the nested palette object and collect each entry's raw value (hex or alias) by its flat name.
- * Top-level hex colors are base colors, which are expanded into their generated shade scale.
- */
-function collectEntries(
-  node: Record<string, unknown>,
-  prefix: string,
-  entries: Map<string, string>,
-  issues: BuildIssue[]
-): void {
-  for (const [key, value] of Object.entries(node)) {
-    const name = prefix ? `${prefix}-${key}` : key;
-    const path = `palette.${name}`;
-    const scaleError = isPlainObject(value) ? validateShadeScale(value) : undefined;
-    const isBaseColor = prefix === '' && isOpaqueHexColor(value);
-    const baseError = isBaseColor ? validateBaseColor(value) : undefined;
-
-    if (!NAME_SEGMENT_RX.test(key) || !NAME_RX.test(name)) {
-      issues.push({
-        message:
-          'Invalid palette key – use lowercase letters, digits and dashes, starting with a letter.',
-        path,
-      });
-    } else if (name === TRANSPARENT) {
-      issues.push({ message: `"${TRANSPARENT}" is a reserved keyword.`, path });
-    } else if (NUMERIC_RX.test(key) && !SHADES.has(key)) {
-      issues.push({
-        message: `Shade "${key}" is not allowed – use one of: ${[...SHADES].join(', ')}.`,
-        path,
-      });
-    } else if (scaleError !== undefined) {
-      issues.push({ message: scaleError, path });
-    } else if (isPlainObject(value)) {
-      collectEntries(value, name, entries, issues);
-    } else if (typeof value !== 'string') {
-      issues.push({
-        message: 'Expected a base color, an alias, a shade scale or a group of named colors.',
-        path,
-      });
-    } else if (isBaseColor) {
-      // An invalid base still generates its shades, so references to the family
-      // (and the generated schema) stay intact and only the base color itself is reported.
-      if (baseError !== undefined) {
-        issues.push({ message: baseError, path });
-      }
-      for (const [shade, hex] of generateShades(value)) {
-        addEntry(`${name}-${shade}`, hex, entries, issues);
-      }
-    } else {
-      addEntry(name, value, entries, issues);
-    }
-  }
-}
-
-/**
- * Resolve a raw palette entry to its hex color, following aliases (with cycle detection).
- * Results are memoized in `resolved`.
- */
-function resolveEntry(
-  name: string,
-  entries: ReadonlyMap<string, string>,
-  resolved: Map<string, string>,
-  chain: readonly string[]
-): ColorResolution {
-  const known = resolved.get(name);
-  if (known !== undefined) {
-    return { hex: known, ok: true };
-  }
-
-  const value = entries.get(name);
-  if (value === undefined) {
-    return { message: unknownColorMessage(name, entries.keys()), ok: false };
-  }
-  if (chain.includes(name)) {
-    return { message: `Circular alias: ${[...chain, name].join(' → ')}.`, ok: false };
-  }
-
-  const alias = ALIAS_RX.exec(value)?.groups;
-  let result: ColorResolution = {
-    message: `Expected an opaque "#RRGGBB" hex color or the name of another palette color (optionally with a lightness, e.g., "violet-500${LIGHTNESS_SEPARATOR}90"), got "${value}".`,
-    ok: false,
-  };
-  if (isOpaqueHexColor(value)) {
-    result = { hex: value.toUpperCase(), ok: true };
-  } else if (alias?.name !== undefined) {
-    result = resolveEntry(alias.name, entries, resolved, [...chain, name]);
-    if (result.ok) {
-      result = applyLightness(result.hex, alias.lightness);
-    }
-  }
-
-  if (result.ok) {
-    resolved.set(name, result.hex);
-  }
-  return result;
-}
-
-/**
- * Build the error message for a raw hex value, pointing to the matching palette color(s), if any.
- *
- * @param value     The raw hex value as written in the source.
- * @param hex       The same color, normalized to `#RRGGBB` / `#RRGGBBAA` (see `normalizeHex`).
- * @param palette   The flattened palette to search for matches (the alpha channel is ignored).
- */
-function describeRawHex(value: string, hex: string, palette: Palette): string {
-  const opaque = hex.slice(0, 7);
-  const matches = [...palette].filter(([, color]) => color === opaque).map(([name]) => `"${name}"`);
-  const hint = matches.length > 0 ? ` (matches ${matches.join(', ')})` : '';
-  return `Raw hex color "${value}" is not allowed${hint} – add it to the palette and reference it by name.`;
+  const hexes = new Map(SHADES.map((shade) => [shade, String(value[shade]).toUpperCase()]));
+  return toScale(family, hexes);
 }
 
 // -------------------------------------- PUBLIC API -------------------------------------
 
-/** Check if a color value is a color pair (two references joined by `COLOR_PAIR_SEPARATOR`). */
-export function isColorPair(value: unknown): value is string {
-  return typeof value === 'string' && value.includes(COLOR_PAIR_SEPARATOR);
+/**
+ * Create a `ThemeColor` (frozen, and registered so `isThemeColor` accepts it).
+ *
+ * @param name   Readable name for diagnostics (e.g., `violet-400`).
+ * @param hex    The `#RRGGBB` or `#RRGGBBAA` hex color.
+ */
+export function createThemeColor(name: string, hex: string): ThemeColor {
+  return registerColor(name, hex);
+}
+
+/** Check if a value is a `ThemeColor` created by the palette (or derived from one). */
+export function isThemeColor(value: unknown): value is ThemeColor {
+  return typeof value === 'object' && value !== null && THEME_COLORS.has(value);
 }
 
 /**
- * Flatten a theme's nested `palette` object into a `name → #RRGGBB` map, resolving aliases.
- * Problems are appended to `issues`; Invalid entries are left out of the result.
+ * Define the palette: generate (or validate) the shade scale of every color family.
+ * @throws {Error} If any family is invalid (listing every problem).
  */
-export function flattenPalette(source: unknown, issues: BuildIssue[]): Palette {
-  const palette = new Map<string, string>();
+export function definePalette<const T extends PaletteDefinition>(definition: T): Palette<T> {
+  const problems: string[] = [];
+  const palette: Record<string, ShadeScale> = {};
 
-  if (!isPlainObject(source)) {
-    issues.push({ message: 'Expected an object.', path: 'palette' });
-    return palette;
-  }
-
-  const entries = new Map<string, string>();
-  const resolved = new Map<string, string>();
-  collectEntries(source, '', entries, issues);
-
-  // Iterating `entries` (instead of reading `resolved`) keeps the palette in definition order.
-  for (const name of entries.keys()) {
-    const result = resolveEntry(name, entries, resolved, []);
-    if (result.ok) {
-      palette.set(name, result.hex);
+  for (const [family, value] of Object.entries(definition)) {
+    if (FAMILY_NAME_RX.test(family)) {
+      const scale = buildScale(family, value, problems);
+      if (scale !== undefined) {
+        palette[family] = scale;
+      }
     } else {
-      issues.push({ message: result.message, path: `palette.${name}` });
+      problems.push(
+        `"${family}": Invalid family name – use lowercase letters and digits, starting with a letter.`
+      );
     }
   }
 
-  return palette;
-}
-
-/**
- * Get the palette color name of a color reference (e.g., `violet-400` for `violet-400%90/20`).
- * @returns The name, or `undefined` if `value` isn't a valid reference (or is `transparent`).
- */
-export function referenceName(value: unknown): string | undefined {
-  const name = typeof value === 'string' ? REFERENCE_RX.exec(value)?.groups?.name : undefined;
-  return name === TRANSPARENT ? undefined : name;
-}
-
-/**
- * Resolve a color reference (`name`, `name%lightness`, `name/opacity`, `name%lightness/opacity` or `transparent`)
- * to a hex color.
- * @returns `#RRGGBB` for opaque references, `#RRGGBBAA` for references with an opacity step.
- */
-export function resolveColorReference(value: unknown, palette: Palette): ColorResolution {
-  if (typeof value !== 'string') {
-    return {
-      message: `Expected a palette color reference, got ${JSON.stringify(value)}.`,
-      ok: false,
-    };
+  if (problems.length > 0) {
+    throw new Error(`Invalid palette:\n${problems.map((problem) => `  - ${problem}`).join('\n')}`);
   }
-  if (value === TRANSPARENT) {
-    return { hex: TRANSPARENT_HEX, ok: true };
-  }
-  const rawHex = normalizeHex(value);
-  if (rawHex !== undefined) {
-    return { message: describeRawHex(value, rawHex, palette), ok: false };
-  }
-
-  const groups = REFERENCE_RX.exec(value)?.groups;
-  const name = groups?.name;
-  if (name === undefined) {
-    return {
-      message: `Invalid color reference "${value}" – expected "<name>", "<name>${LIGHTNESS_SEPARATOR}<lightness>", "<name>${OPACITY_SEPARATOR}<opacity>" (or both) or "${TRANSPARENT}".`,
-      ok: false,
-    };
-  }
-  if (name === TRANSPARENT) {
-    return { message: `"${TRANSPARENT}" can't have a lightness or an opacity.`, ok: false };
-  }
-
-  const hex = palette.get(name);
-  if (hex === undefined) {
-    return { message: unknownColorMessage(name, palette.keys()), ok: false };
-  }
-  const adjusted = applyLightness(hex, groups?.lightness);
-  if (!adjusted.ok || groups?.opacity === undefined) {
-    return adjusted;
-  }
-
-  const alpha = OPACITY_STEPS.get(Number(groups.opacity));
-  if (alpha === undefined) {
-    return {
-      message: `Opacity "${OPACITY_SEPARATOR}${groups.opacity}" is not allowed – use one of: ${[...OPACITY_STEPS.keys()].join(', ')}.`,
-      ok: false,
-    };
-  }
-  return { hex: `${adjusted.hex}${alpha}`, ok: true };
+  return Object.freeze(palette) as Palette<T>;
 }

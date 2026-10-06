@@ -33,9 +33,8 @@
   "type": "module",
   "contributes": {
     "themes": [
-      { "label": "XulbuX PRO", "uiTheme": "vs-dark", "path": "./dist/xulbux-pro.json" },
-      { "label": "XulbuX PRO Legacy", "uiTheme": "vs-dark", "path": "./dist/xulbux-pro-legacy.json" },
-      { "label": "XulbuX VaporWave", "uiTheme": "vs-dark", "path": "./dist/xulbux-vaporwave.json" }
+      { "label": "XulbuX PRO Dark", "uiTheme": "vs-dark", "path": "./dist/xulbux-pro-dark.json" },
+      { "label": "XulbuX PRO Light", "uiTheme": "vs", "path": "./dist/xulbux-pro-light.json" }
     ]
   },
   "scripts": {

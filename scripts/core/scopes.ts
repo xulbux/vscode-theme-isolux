@@ -1,29 +1,27 @@
 /**
  * Color scopes – Keep UI colors and syntax colors apart.
  *
- * The palette's `ui` group defines UI roles (`ui-accent-base`, `ui-error-bg`, …) as aliases of the base colors.
- * For palettes that define such a group, references are restricted by where they're used:
- * - `colors` (scope `ui`): only UI roles (`ui-*`), neutral colors (`gray-*`, `ansi-*`) and `transparent`.
- *   Exception: keys matching `CATEGORY_KEY_PREFIXES` (scope `any`) may use every palette color.
- * - `tokenColors` / `semanticTokenColors` (scope `syntax`): every palette color except UI roles.
- *
- * Palettes without a `ui` group aren't restricted, so themes can be migrated one at a time.
+ * Token references are restricted by where they're used:
+ * - `colors` (scope `ui`): only `ui.*` tokens.
+ *   Exception: keys matching `CATEGORY_KEY_PREFIXES` (scope `any`) may use `token.*` tokens as well,
+ *   e.g., `symbolIcon.functionForeground` → `token.function`, so icons and highlighting never drift apart.
+ * - `tokenColors` / `semanticTokenColors` (scope `syntax`): only `token.*` tokens.
  */
 
-import type { ColorScope, Palette } from '../types/index.ts';
+import type { ColorScope, ResolvedToken, TokenGroup } from '../types/index.ts';
 
 // ---------------------------------------- CONSTS ---------------------------------------
 
-/** Palette group that holds the UI roles. */
-const UI_GROUP = 'ui';
-
-/** Palette groups allowed in the `ui` scope. */
-const UI_SCOPE_GROUPS: readonly string[] = [UI_GROUP, 'gray', 'ansi'];
+/** The token groups allowed in each scope. */
+const SCOPE_GROUPS: Readonly<Record<ColorScope, readonly TokenGroup[]>> = {
+  any: ['ui', 'token'],
+  syntax: ['token'],
+  ui: ['ui'],
+};
 
 /**
  * `colors` keys that label categories (symbol kinds, bracket nesting levels, chart series, git states, …)
- * instead of UI states. Their colors must keep their hue independently of the UI roles,
- * so they may use every palette color (scope `any`).
+ * instead of UI states. They may use syntax tokens as well (scope `any`).
  */
 export const CATEGORY_KEY_PREFIXES: readonly string[] = [
   'charts.',
@@ -39,48 +37,27 @@ export const CATEGORY_KEY_PREFIXES: readonly string[] = [
   'symbolIcon.',
 ];
 
-// -------------------------------------- INTERNALS --------------------------------------
-
-function isInGroup(name: string, group: string): boolean {
-  return name.startsWith(`${group}-`);
-}
-
 // -------------------------------------- PUBLIC API -------------------------------------
 
-/**
- * Whether scope restrictions apply to a palette (it defines at least one `ui-*` color).
- */
-export function hasScopes(palette: Palette): boolean {
-  return [...palette.keys()].some((name) => isInGroup(name, UI_GROUP));
-}
-
-/**
- * Get the scope of a `colors` key.
- */
+/** Get the scope of a `colors` key. */
 export function scopeOfColorKey(key: string): ColorScope {
   return CATEGORY_KEY_PREFIXES.some((prefix) => key.startsWith(prefix)) ? 'any' : 'ui';
 }
 
-/**
- * Whether the palette color `name` may be used in `scope`.
- */
-export function isAllowedInScope(name: string, scope: ColorScope): boolean {
-  if (scope === 'ui') {
-    return UI_SCOPE_GROUPS.some((group) => isInGroup(name, group));
-  }
-  if (scope === 'syntax') {
-    return !isInGroup(name, UI_GROUP);
-  }
-  return true;
+/** Get the token groups allowed in a scope. */
+export function groupsOfScope(scope: ColorScope): readonly TokenGroup[] {
+  return SCOPE_GROUPS[scope];
 }
 
-/**
- * Build the error message for a palette color used outside of its scope.
- */
-export function scopeViolationMessage(name: string, scope: ColorScope): string {
+/** Whether a token may be used in `scope`. */
+export function isAllowedInScope(token: ResolvedToken, scope: ColorScope): boolean {
+  return SCOPE_GROUPS[scope].includes(token.group);
+}
+
+/** Build the error message for a token used outside of its scope. */
+export function scopeViolationMessage(token: ResolvedToken, scope: ColorScope): string {
   if (scope === 'syntax') {
-    return `UI role "${name}" can't be used for syntax highlighting – use a base palette color instead.`;
+    return `UI token "${token.name}" can't be used for syntax highlighting – use a "token.*" token instead.`;
   }
-  const allowed = UI_SCOPE_GROUPS.map((group) => `"${group}-*"`).join(', ');
-  return `"${name}" can't be used for UI colors – use one of ${allowed} (keys that label categories are listed in \`CATEGORY_KEY_PREFIXES\`).`;
+  return `Syntax token "${token.name}" can't be used for UI colors – use a "ui.*" token instead (only keys that label categories, listed in \`CATEGORY_KEY_PREFIXES\`, may use syntax tokens).`;
 }

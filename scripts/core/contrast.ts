@@ -5,12 +5,12 @@
  * - `TEXT` (4.5:1) – Regular text (labels, editor text, active / hovered items, buttons, …)
  * - `SECONDARY` (3:1) – Intentionally dimmed text and icons (inactive tabs, placeholders, line numbers, …)
  *
- * Every pair is checked on the compiled theme (hex colors only). Translucent backgrounds are blended over the
- * surface they're drawn on (`over`), translucent foregrounds over the resulting background.
+ * Every pair is checked on the compiled theme (hex colors only), once per theme variant. Translucent backgrounds
+ * are blended over the surface they're drawn on (`over`), translucent foregrounds over the resulting background.
  * Pairs whose foreground or background isn't set by the theme are skipped (VS Code's defaults apply there).
  *
- * The same measurement resolves color pairs (`gray-900|gray-50`, see `pickBestContrast`): foregrounds in
- * `CONTRAST_PAIRS` may list two colors, and the one with the better contrast against its background is used.
+ * Text on colored fills (badges, buttons, …) should use an `onColor` token (see `tokens.ts`), which picks the
+ * foreground with the better contrast per variant; This check then verifies the result.
  */
 
 import type { BuildIssue } from '../types/index.ts';
@@ -50,7 +50,7 @@ const FALLBACK_SURFACE_HEX = '#000000';
 
 /**
  * The foreground / background pairs to check, grouped by workbench area.
- * Add a pair for every new foreground key that carries text, so its contrast is checked (and it may use a color pair).
+ * Add a pair for every new foreground key that carries text, so its contrast is checked.
  */
 const CONTRAST_PAIRS: readonly ContrastPair[] = [
   // Editor:
@@ -328,11 +328,6 @@ const CONTRAST_PAIRS: readonly ContrastPair[] = [
   { background: 'notifications.background', foreground: 'notifications.foreground', min: TEXT },
 ];
 
-/** The `colors` keys checked as a foreground, which may use a color pair (see `pickBestContrast`). */
-export const CONTRAST_FOREGROUND_KEYS: ReadonlySet<string> = new Set(
-  CONTRAST_PAIRS.map((pair) => pair.foreground)
-);
-
 // -------------------------------------- INTERNALS --------------------------------------
 
 /** Read a resolved color; Values that aren't hex colors (yet) are treated as not set. */
@@ -417,46 +412,6 @@ function checkTokenColors(theme: Record<string, unknown>, editorBackground: stri
 }
 
 // -------------------------------------- PUBLIC API -------------------------------------
-
-/**
- * Pick the candidate foreground with the best contrast against the backgrounds `key` is checked against.
- *
- * If `key` has several contrast pairs (e.g., a normal and a hover background), the candidate whose
- * lowest contrast (relative to each pair's minimum) is the highest wins. On a tie, the first candidate wins.
- *
- * @param key          The `colors` key the candidates are for (a foreground in `CONTRAST_PAIRS`).
- * @param candidates   The candidate hex colors.
- * @param colors       The `colors` of the theme (only the resolved hex colors are considered).
- * @returns The index of the best candidate, or `undefined` if none of the backgrounds is set.
- */
-export function pickBestContrast(
-  key: string,
-  candidates: readonly string[],
-  colors: Record<string, unknown>
-): number | undefined {
-  const surface = readSurface(colors);
-  const targets = CONTRAST_PAIRS.flatMap((pair) => {
-    const background =
-      pair.foreground === key ? readSolidBackground(pair, colors, surface) : undefined;
-    return background === undefined ? [] : [{ background, min: pair.min }];
-  });
-  if (targets.length === 0) {
-    return undefined;
-  }
-
-  let bestIndex = 0;
-  let bestScore = Number.NEGATIVE_INFINITY;
-  for (const [index, candidate] of candidates.entries()) {
-    const score = Math.min(
-      ...targets.map((target) => measure(candidate, target.background) / target.min)
-    );
-    if (score > bestScore) {
-      bestIndex = index;
-      bestScore = score;
-    }
-  }
-  return bestIndex;
-}
 
 /**
  * Check the contrast of a compiled theme (hex colors only, see `compileTheme`).

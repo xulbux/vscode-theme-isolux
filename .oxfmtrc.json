@@ -12,7 +12,7 @@
     "dist/**",
     "package.json",
     "packages/**",
-    "theme/**"
+    "theme/**/*.jsonc"
   ],
   "objectWrap": "collapse",
   "printWidth": 100,

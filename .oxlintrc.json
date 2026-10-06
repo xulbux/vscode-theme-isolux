@@ -34,5 +34,8 @@
     "typescript/no-empty-object-type": ["error", { "allowInterfaces": "with-single-extends" }],
     "unicorn/filename-case": ["error", { "cases": { "camelCase": true, "pascalCase": true } }],
     "unicorn/number-literal-case": "off"
-  }
+  },
+  "overrides": [
+    { "files": ["theme/**/*.ts"], "rules": { "prefer-destructuring": "off", "sort-keys": "off" } }
+  ]
 }

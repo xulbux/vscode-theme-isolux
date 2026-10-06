@@ -15,5 +15,5 @@
     "verbatimModuleSyntax": true
   },
   "exclude": ["node_modules", "dist"],
-  "include": ["scripts/**/*.ts"]
+  "include": ["scripts/**/*.ts", "theme/**/*.ts"]
 }
