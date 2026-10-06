@@ -9,10 +9,10 @@
   "palette": {
     "gray": {
       "50": "#FAFAFA",
-      "100": "#E3E3E3",
+      "100": "#E2E2E2",
       "200": "#BDBDBD",
       "300": "#8A8A8A",
-      "400": "#636363",
+      "400": "#646464",
       "500": "#3D3D3D",
       "600": "#2C2C2C",
       "700": "#242424",
@@ -377,7 +377,7 @@
     "editorStickyScrollHover.background": "ui-surface-hover",
     "editorSuggestWidget.background": "gray-800",
     "editorSuggestWidget.border": "gray-600",
-    "editorSuggestWidget.focusHighlightForeground": "gray-50",
+    "editorSuggestWidget.focusHighlightForeground": "ui-accent-base",
     "editorSuggestWidget.foreground": "gray-200",
     "editorSuggestWidget.highlightForeground": "gray-50",
     "editorSuggestWidget.selectedBackground": "ui-surface-active",
@@ -468,7 +468,7 @@
     "list.focusAndSelectionOutline": "transparent",
     "list.focusBackground": "ui-surface-hover",
     "list.focusForeground": "gray-50",
-    "list.focusHighlightForeground": "gray-50",
+    "list.focusHighlightForeground": "ui-accent-base",
     "list.focusOutline": "gray-400",
     "list.highlightForeground": "gray-50",
     "list.hoverBackground": "ui-surface-hover",
@@ -958,7 +958,7 @@
         "variable.parameter.function.language.special.cls.python",
         "variable.parameter.function.language.special.self.python"
       ],
-      "settings": { "foreground": "gray-200" }
+      "settings": { "foreground": "gray-100" }
     },
     {
       "scope": [
@@ -975,7 +975,7 @@
         "string.unquoted.label",
         "text"
       ],
-      "settings": { "foreground": "gray-100" }
+      "settings": { "foreground": "gray-50" }
     },
     {
       "scope": [
