@@ -98,7 +98,7 @@ function buildColorReferenceSchema(
       })),
     ],
     pattern: `^(?:${TRANSPARENT}|${reference}${pair})$`,
-    patternErrorMessage: `Expected a palette color allowed here ("<name>", "<name>${LIGHTNESS_SEPARATOR}<lightness>", "<name>/<opacity>" or "<name>${LIGHTNESS_SEPARATOR}<lightness>/<opacity>")${pairHint} or "${TRANSPARENT}". Allowed lightness: ${MIN_LIGHTNESS} to ${MAX_LIGHTNESS} (in % of the OKLCH lightness). Allowed opacity steps: ${steps.join(', ')}.`,
+    patternErrorMessage: `Expected a palette color allowed here ("<name>", "<name>${LIGHTNESS_SEPARATOR}<lightness>", "<name>/<opacity>" or "<name>${LIGHTNESS_SEPARATOR}<lightness>/<opacity>")${pairHint} or "${TRANSPARENT}". Allowed lightness: ${MIN_LIGHTNESS} to ${MAX_LIGHTNESS} (in % of the perceived lightness). Allowed opacity steps: ${steps.join(', ')}.`,
     type: 'string',
   };
 }
@@ -266,7 +266,7 @@ export function generateSourceSchema(
             { $ref: '#/definitions/paletteGroup' },
           ],
         },
-        markdownDescription: `Colors referenced by name in \`colors\`, \`tokenColors\` and \`semanticTokenColors\`.\n\n- A hex color is a base color: the whole shade scale is generated from it, with shade \`${BASE_SHADE}\` set to the base. Every base must have the OKLCH lightness of shade \`${BASE_SHADE}\` (${TARGET_LIGHTNESS.get(BASE_SHADE)}), so all families look equally bright; the base decides the hue and saturation of the whole scale.\n- An object with numeric keys is a manual shade scale and must define every shade (\`${[...SHADES].join('`, `')}\`).\n- Other objects are groups of named colors (e.g., \`ansi\`, \`ui\`), whose values are \`#RRGGBB\` hex colors or the name of another palette color, optionally with a lightness modifier (e.g., \`"bg-hover": "ui-accent-bg${LIGHTNESS_SEPARATOR}94"\` – ${MIN_LIGHTNESS} to ${MAX_LIGHTNESS} % of its OKLCH lightness, for subtle variants in between the shades). Nested keys are joined with \`-\`.\n\nIf a \`ui\` group is defined, \`colors\` may only use \`ui-*\`, \`gray-*\` and \`ansi-*\` (except category keys like \`symbolIcon.*\`), and token colors may not use \`ui-*\`.`,
+        markdownDescription: `Colors referenced by name in \`colors\`, \`tokenColors\` and \`semanticTokenColors\`.\n\n- A hex color is a base color: the whole shade scale is generated from it, with shade \`${BASE_SHADE}\` set to the base. Every base must have the OKLCH lightness of shade \`${BASE_SHADE}\` (${TARGET_LIGHTNESS.get(BASE_SHADE)}), so all families look equally bright; the base decides the hue and saturation of the whole scale.\n- An object with numeric keys is a manual shade scale and must define every shade (\`${[...SHADES].join('`, `')}\`).\n- Other objects are groups of named colors (e.g., \`ansi\`, \`ui\`), whose values are \`#RRGGBB\` hex colors or the name of another palette color, optionally with a lightness modifier (e.g., \`"bg-hover": "ui-accent-bg${LIGHTNESS_SEPARATOR}94"\` – ${MIN_LIGHTNESS} to ${MAX_LIGHTNESS} % of its perceived lightness, for subtle variants in between the shades). Nested keys are joined with \`-\`.\n\nIf a \`ui\` group is defined, \`colors\` may only use \`ui-*\`, \`gray-*\` and \`ansi-*\` (except category keys like \`symbolIcon.*\`), and token colors may not use \`ui-*\`.`,
         propertyNames: { not: { pattern: NUMERIC_KEY_PATTERN } },
         type: 'object',
       },

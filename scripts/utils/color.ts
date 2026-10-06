@@ -34,6 +34,16 @@ const SRGB_TO_P3: readonly Rgb[] = [
   [0.0170826307, 0.0723974407, 0.9105199286],
 ];
 
+/**
+ * Parameters of the lightness "toe" (`Lr`, see `toe`), from
+ * https://bottosson.github.io/posts/colorpicker/#intermission---a-new-lightness-estimate-for-oklab.
+ */
+const TOE_K1 = 0.206;
+/** See `TOE_K1`. */
+const TOE_K2 = 0.03;
+/** See `TOE_K1` (chosen so that white stays at `1`). */
+const TOE_K3 = (1 + TOE_K1) / (1 + TOE_K2);
+
 // ------------------------------------ REGEX PATTERNS -----------------------------------
 
 /** Matches a `#RRGGBB` or `#RRGGBBAA` hex color. */
@@ -103,6 +113,21 @@ function linearSrgbToP3(rgb: Rgb): Rgb {
 function isInGamut(rgb: Rgb, gamut: Gamut): boolean {
   const channels = gamut === 'p3' ? linearSrgbToP3(rgb) : rgb;
   return channels.every((channel) => channel >= -GAMUT_EPSILON && channel <= 1 + GAMUT_EPSILON);
+}
+
+/**
+ * OKLCH lightness → toe-corrected lightness (`Lr`, as used by OKHSL).
+ * OKLCH underestimates the lightness of very dark colors; The toe-corrected `Lr` fixes that (close to CIELAB's
+ * `L*`), while mid-tones and white stay almost unchanged (`0` → `0`, `1` → `1`).
+ */
+function toe(l: number): number {
+  const x = TOE_K3 * l - TOE_K1;
+  return (x + Math.sqrt(x * x + 4 * TOE_K2 * TOE_K3 * l)) / 2;
+}
+
+/** Toe-corrected lightness (`Lr`) → OKLCH lightness (inverse of `toe`). */
+function toeInverse(lr: number): number {
+  return (lr * lr + TOE_K1 * lr) / (TOE_K3 * (lr + TOE_K2));
 }
 
 // -------------------------------------- PUBLIC API -------------------------------------
@@ -179,7 +204,9 @@ export function oklchToHex(color: Oklch): string {
 }
 
 /**
- * Scale the OKLCH lightness of an opaque color, keeping its chroma and hue.
+ * Scale the perceived lightness of an opaque color, keeping its chroma and hue.
+ * Scales the toe-corrected OKLCH lightness (`Lr`, see `toe`), so dark colors don't collapse to black
+ * (e.g., `0.5` turns `#161616` into `#080808` instead of `#030303`).
  * Results outside of sRGB are mapped back into it (see `oklchToHex`).
  *
  * @param hex      The `#RRGGBB` color.
@@ -187,7 +214,8 @@ export function oklchToHex(color: Oklch): string {
  */
 export function scaleLightness(hex: string, factor: number): string {
   const color = hexToOklch(hex);
-  return oklchToHex({ ...color, l: Math.min(1, Math.max(0, color.l * factor)) });
+  const lr = Math.min(1, Math.max(0, toe(color.l) * factor));
+  return oklchToHex({ ...color, l: toeInverse(lr) });
 }
 
 /**

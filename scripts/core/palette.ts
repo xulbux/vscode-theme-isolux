@@ -59,12 +59,12 @@ export const OPACITY_STEPS: ReadonlyMap<number, string> = new Map([
 ]);
 
 /**
- * Lowest allowed lightness modifier (in % of the color's OKLCH lightness).
+ * Lowest allowed lightness modifier (in % of the color's perceived lightness, see `scaleLightness`).
  * Lightness modifiers are meant for subtle variants; Bigger differences should use another shade.
  */
 export const MIN_LIGHTNESS = 50;
 
-/** Highest allowed lightness modifier (in % of the color's OKLCH lightness). */
+/** Highest allowed lightness modifier (in % of the color's perceived lightness, see `scaleLightness`). */
 export const MAX_LIGHTNESS = 150;
 
 /** Keyword for a fully transparent color. */
@@ -134,7 +134,7 @@ function applyLightness(hex: string, lightness: string | undefined): ColorResolu
   }
   if (percent < MIN_LIGHTNESS || percent > MAX_LIGHTNESS) {
     return {
-      message: `Lightness "${LIGHTNESS_SEPARATOR}${lightness}" is not allowed – use ${MIN_LIGHTNESS} to ${MAX_LIGHTNESS} (in % of the color's OKLCH lightness); For bigger differences, use another shade.`,
+      message: `Lightness "${LIGHTNESS_SEPARATOR}${lightness}" is not allowed – use ${MIN_LIGHTNESS} to ${MAX_LIGHTNESS} (in % of the color's perceived lightness); For bigger differences, use another shade.`,
       ok: false,
     };
   }

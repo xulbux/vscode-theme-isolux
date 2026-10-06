@@ -65,6 +65,7 @@ const CONTRAST_PAIRS: readonly ContrastPair[] = [
   { background: 'tab.activeBackground', foreground: 'tab.activeForeground', min: TEXT },
   { background: 'tab.inactiveBackground', foreground: 'tab.inactiveForeground', min: SECONDARY },
   { background: 'tab.hoverBackground', foreground: 'tab.hoverForeground', min: TEXT },
+  { background: 'tab.selectedBackground', foreground: 'tab.selectedForeground', min: TEXT },
   {
     background: 'modernTab.activeBackground',
     foreground: 'modernTab.activeForeground',
@@ -129,6 +130,11 @@ const CONTRAST_PAIRS: readonly ContrastPair[] = [
   { background: 'panel.background', foreground: 'panelTitle.inactiveForeground', min: SECONDARY },
   { background: 'terminal.background', foreground: 'terminal.foreground', min: TEXT },
   { background: 'statusBar.background', foreground: 'statusBar.foreground', min: TEXT },
+  {
+    background: 'statusBar.debuggingBackground',
+    foreground: 'statusBar.debuggingForeground',
+    min: TEXT,
+  },
   {
     background: 'statusBarItem.remoteBackground',
     foreground: 'statusBarItem.remoteForeground',
