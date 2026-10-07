@@ -26,10 +26,10 @@ import { isPlainObject } from '../utils/object.ts';
 import { didYouMean } from '../utils/strings.ts';
 import { colorKeyPath, forEachTokenColor } from '../utils/theme.ts';
 import {
-  groupsOfScope,
   isAllowedInScope,
   scopeOfColorKey,
   scopeViolationMessage,
+  tokenNamesInScope,
 } from './scopes.ts';
 
 // ---------------------------------------- TYPES ----------------------------------------
@@ -69,18 +69,11 @@ const RESERVED_KEYS: ReadonlyMap<string, string> = new Map([
   ['type', 'the theme\'s "uiTheme" in package.json'],
 ]);
 
-/** The VS Code theme `type` of each variant. */
-const THEME_TYPES: Readonly<Record<Variant, string>> = { dark: 'dark', light: 'light' };
-
 // -------------------------------------- INTERNALS --------------------------------------
 
 /** Build the error message for an unknown token, suggesting the closest token allowed in `scope`. */
 function unknownTokenMessage(value: string, scope: ColorScope, tokens: TokenMap): string {
-  const groups = groupsOfScope(scope);
-  const allowed = [...tokens.values()]
-    .filter((token) => groups.includes(token.group))
-    .map((token) => token.name);
-  return `Unknown token "${value}".${didYouMean(value, allowed)}`;
+  return `Unknown token "${value}".${didYouMean(value, tokenNamesInScope(tokens.keys(), scope))}`;
 }
 
 /**
@@ -184,7 +177,7 @@ export function compileTheme(
   );
   // Assigned one by one, so the keys set by the build are always the first keys of the compiled theme.
   const theme: Record<string, unknown> = { $schema: VSCODE_THEME_SCHEMA };
-  theme.type = THEME_TYPES[options.variant];
+  theme.type = options.variant; // The variants are named after VS Code's theme types.
   theme.name = options.name;
   if (options.author !== undefined) {
     theme.author = options.author;

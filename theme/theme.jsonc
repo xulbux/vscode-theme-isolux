@@ -124,7 +124,7 @@
     "debugView.stateLabelBackground": "ui.warning",
     "debugView.stateLabelForeground": "ui.warning.foreground",
     "debugView.valueChangedHighlight": "ui.modified",
-    "descriptionForeground": "ui.foreground",
+    "descriptionForeground": "ui.foreground.secondary",
     "diffEditor.border": "ui.border",
     "diffEditor.diagonalFill": "ui.highlight",
     "diffEditor.insertedLineBackground": "ui.added.line",
@@ -194,8 +194,8 @@
     "editorBracketHighlight.foreground5": "ui.bracket.5",
     "editorBracketHighlight.foreground6": "ui.bracket.6",
     "editorBracketHighlight.unexpectedBracket.foreground": "ui.foreground.faint",
-    "editorBracketMatch.background": "ui.highlight.strong",
-    "editorBracketMatch.border": "transparent",
+    "editorBracketMatch.background": "transparent",
+    "editorBracketMatch.border": "ui.bracket.match",
     "editorBracketPairGuide.activeBackground1": "ui.bracket.1.guideActive",
     "editorBracketPairGuide.activeBackground2": "ui.bracket.2.guideActive",
     "editorBracketPairGuide.activeBackground3": "ui.bracket.3.guideActive",
@@ -260,7 +260,7 @@
     "editorIndentGuide.background4": "transparent",
     "editorIndentGuide.background5": "transparent",
     "editorIndentGuide.background6": "transparent",
-    "editorInfo.background": "ui.info.highlight",
+    "editorInfo.background": "ui.info.subtle",
     "editorInfo.foreground": "ui.info",
     "editorInlayHint.background": "ui.background.raised",
     "editorInlayHint.foreground": "ui.foreground.muted",
@@ -404,7 +404,7 @@
     "list.focusAndSelectionOutline": "transparent",
     "list.focusBackground": "ui.background.hover",
     "list.focusForeground": "ui.foreground.strong",
-    "list.focusHighlightForeground": "ui.accent",
+    "list.focusHighlightForeground": "ui.accent.strong",
     "list.focusOutline": "transparent",
     "list.highlightForeground": "ui.foreground.strong",
     "list.hoverBackground": "ui.background.hover",
@@ -576,7 +576,7 @@
     "settings.focusedRowBorder": "transparent",
     "settings.headerBorder": "ui.border",
     "settings.headerForeground": "ui.foreground",
-    "settings.modifiedItemIndicator": "ui.accent",
+    "settings.modifiedItemIndicator": "ui.modified",
     "settings.numberInputBackground": "ui.background.input",
     "settings.numberInputBorder": "ui.border.input",
     "settings.numberInputForeground": "ui.foreground",
@@ -805,7 +805,7 @@
         "comment",
         "constant.numeric.line-number.find-in-files",
         "constant.numeric.line-number.match.find-in-files",
-        "invalid",
+        "invalid", // Muted on purpose; VS Code also flags parts of signature help as invalid.
         "keyword.operator.assignment.dotenv",
         "log.verbose",
         "meta.at-rule.keyframes.body",
@@ -870,6 +870,7 @@
         "comment entity.name.type",
         "comment keyword",
         "constant.other.ellipsis",
+        "entity.name.decorator",
         "entity.name.function.decorator",
         "keyword.other.phpdoc",
         "meta.function.decorator",
@@ -939,6 +940,7 @@
         "punctuation.template-string.element.begin",
         "punctuation.template-string.element.end",
         "region.redish",
+        "storage.type.function.arrow",
         "string.quoted.template punctuation.definition.string.begin",
         "string.quoted.template punctuation.definition.string.end"
       ],
@@ -953,9 +955,6 @@
         "log.exception",
         "log.exceptiontype",
         "meta.named",
-        "punctuation.separator.pointer-access",
-        "source.ignore",
-        "storage.type.function.arrow",
         "support.other.match",
         "support.variable.magic"
       ],
@@ -964,6 +963,7 @@
     {
       "scope": [
         "comment.git-status.header.remote",
+        "entity.name.label",
         "entity.name.lifetime.rust",
         "keyword.control.rust",
         "keyword.declaration.class.ruby",
@@ -972,19 +972,20 @@
         "keyword.operator.misc.rust",
         "keyword.operator.rest",
         "keyword.other.template.begin",
-        "keyword.other.template.end",
-        "markup.deleted punctuation.definition.deleted",
-        "markup.deleted",
-        "region.orangish"
+        "keyword.other.template.end"
       ],
       "settings": { "foreground": "token.keyword.secondary" }
     },
     {
       "scope": [
+        "meta.attribute.python",
         "meta.object-literal.key",
         "meta.objectliteral",
         "meta.selector",
         "parameters variable.function",
+        "region.orangish",
+        "source.ignore",
+        "support.variable.property",
         "variable.other.jsdoc",
         "variable.other.object.property",
         "variable.other.property",
@@ -1001,8 +1002,6 @@
         "entity.name.variable",
         "invalid.deprecated",
         "log.warning",
-        "markup.changed punctuation.definition.changed",
-        "markup.changed",
         "markup.heading",
         "markup.underline.link punctuation",
         "meta.diff.git-diff.header",
@@ -1059,8 +1058,6 @@
         "entity.other.attribute-name.css",
         "entity.other.attribute-name.parent-selector-suffix.css punctuation.definition.entity.css",
         "entity.other.attribute-name.parent-selector-suffix.css",
-        "markup.inserted punctuation.definition.inserted",
-        "markup.inserted",
         "meta.attribute-with-value.class string",
         "meta.attribute.class.html string",
         "meta.definition.function",
@@ -1096,7 +1093,6 @@
       "scope": [
         "comment keyword.codetag.notation",
         "entity.name.constant",
-        "entity.name.label",
         "entity.name.operator.custom-literal.number",
         "entity.other.git-status.hex",
         "log.info",
@@ -1181,28 +1177,49 @@
       "settings": { "foreground": "token.number" }
     },
     {
+      "scope": "keyword.other.unit",
+      "settings": { "foreground": "token.number.unit" }
+    },
+    {
       "scope": [
-        "constant.language",
         "constant",
         "entity.name.function.preprocessor",
         "markup.inline.raw.markdown",
         "markup.inline.raw.string.markdown string.other.link.title.markdown",
         "markup.inline.raw.string.markdown",
         "support.constant",
-        "variable.other.constant"
+        "variable.other.constant",
+        "variable.other.enummember"
       ],
       "settings": { "foreground": "token.constant" }
     },
     {
+      "scope": "constant.language",
+      "settings": { "foreground": "token.constant.language" }
+    },
+    {
+      "scope": ["markup.inserted punctuation.definition.inserted", "markup.inserted"],
+      "settings": { "foreground": "token.diff.added" }
+    },
+    {
+      "scope": ["markup.changed punctuation.definition.changed", "markup.changed"],
+      "settings": { "foreground": "token.diff.modified" }
+    },
+    {
+      "scope": ["markup.deleted punctuation.definition.deleted", "markup.deleted"],
+      "settings": { "foreground": "token.diff.removed" }
+    },
+    {
       "scope": [
         "keyword.operator",
+        "punctuation.separator.pointer-access",
         "source.ruby variable.other.readwrite.class.ruby",
         "source.ruby variable.other.readwrite.instance.ruby"
       ],
       "settings": { "foreground": "token.operator" }
     },
     {
-      "scope": ["strong", "markup.bold", "comment", "keyword.other.important"],
+      "scope": ["strong", "markup.bold", "keyword.other.important"],
       "settings": { "fontStyle": "bold" }
     },
     {

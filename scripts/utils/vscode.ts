@@ -40,19 +40,44 @@ function isAppRoot(dir: string): boolean {
 }
 
 /**
- * Get the platform's default VS Code installation folders.
+ * Get the platform's default installation folders of VS Code, in order of preference:
+ * VS Code (stable) first, then VS Code Insiders and VSCodium.
  */
 function getInstallDirs(): string[] {
   if (process.platform === 'win32') {
-    return [
-      path.join(process.env.ProgramFiles ?? String.raw`C:\Program Files`, 'Microsoft VS Code'),
-      path.join(process.env.LOCALAPPDATA ?? '', 'Programs', 'Microsoft VS Code'),
-    ];
+    const programFiles = process.env.ProgramFiles ?? String.raw`C:\Program Files`;
+    const userPrograms = path.join(process.env.LOCALAPPDATA ?? '', 'Programs');
+    return ['Microsoft VS Code', 'Microsoft VS Code Insiders', 'VSCodium'].flatMap((name) => [
+      path.join(programFiles, name),
+      path.join(userPrograms, name),
+    ]);
   }
   if (process.platform === 'darwin') {
-    return ['/Applications/Visual Studio Code.app/Contents'];
+    return ['Visual Studio Code', 'Visual Studio Code - Insiders', 'VSCodium'].map(
+      (name) => `/Applications/${name}.app/Contents`
+    );
   }
-  return ['/usr/share/code', '/opt/visual-studio-code', '/snap/code/current/usr/share/code'];
+  const flatpak = path.join(
+    'app',
+    'com.visualstudio.code',
+    'current',
+    'active',
+    'files',
+    'extra',
+    'vscode'
+  );
+  return [
+    '/usr/share/code',
+    '/opt/visual-studio-code',
+    '/snap/code/current/usr/share/code',
+    path.join('/var/lib/flatpak', flatpak),
+    path.join(os.homedir(), '.local', 'share', 'flatpak', flatpak),
+    '/usr/lib/code', // E.g., Arch Linux's `code` package (the installation folder is the app folder itself).
+    '/usr/share/code-insiders',
+    '/opt/visual-studio-code-insiders',
+    '/usr/share/codium',
+    '/opt/vscodium-bin',
+  ];
 }
 
 // -------------------------------------- PUBLIC API -------------------------------------
@@ -74,7 +99,7 @@ export function findAppRoot(): string {
 
   for (const installDir of getInstallDirs()) {
     const candidates = [installDir, ...listDirectories(installDir)]
-      .map((dir) => path.join(dir, 'resources', 'app'))
+      .flatMap((dir) => [path.join(dir, 'resources', 'app'), dir])
       .filter((dir) => isAppRoot(dir))
       .toSorted((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
     if (candidates.length > 0) {

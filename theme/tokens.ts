@@ -30,25 +30,24 @@ function mirror(scale: ShadeScale, shade: Shade): readonly [ThemeColor, ThemeCol
   return [scale[shade], scale[(1000 - shade) as Shade]];
 }
 
+/**
+ * Get the tokens of a bracket nesting level: the bracket color (`400`), its pair guide (`950`) and its
+ * active pair guide (`600`), each mirrored for light (see `mirror`).
+ *
+ * @param scale   The shade scale of the color family (e.g., `color.violet`).
+ */
+function bracket(scale: ShadeScale) {
+  return {
+    DEFAULT: mirror(scale, 400),
+    guide: mirror(scale, 950),
+    guideActive: mirror(scale, 600),
+  };
+}
+
 // -------------------------------------- PUBLIC API -------------------------------------
 
-const {
-  amber,
-  coral,
-  cyan,
-  fuchsia,
-  gray,
-  green,
-  indigo,
-  orange,
-  orchid,
-  pink,
-  purple,
-  red,
-  rose,
-  teal,
-  violet,
-} = color;
+const { amber, coral, cyan, fuchsia, gray, green, indigo, orange, pink, red, rose, teal, violet } =
+  color;
 
 /** Isolux Pro – Neutral grays with a violet accent and colorful, clearly separated syntax colors. */
 export function isoluxPro() {
@@ -62,7 +61,10 @@ export function isoluxPro() {
   const foreground = [gray[100], gray[700]] as const;
   const foregroundSecondary = [gray[200], gray[500]] as const;
   const foregroundMuted = [gray[300], gray[400]] as const;
+  const foregroundFaint = [gray[400], gray[300]] as const;
+  const border = [gray[600], gray[100]] as const;
   const borderStrong = [gray[500], lightness(gray[200], 1.08)] as const;
+  const raised = [gray[800], lightness(gray[50], 0.97)] as const;
   const onFill = [gray[950], gray[50]]; // Candidates for text on colored fills (see `onColor`).
 
   // Buttons:
@@ -71,41 +73,49 @@ export function isoluxPro() {
   const buttonNeutral = [gray[700], gray[100]] as const;
   const buttonNeutralHover = [lightness(gray[700], 0.78), lightness(gray[100], 0.97)] as const;
 
-  // Roles (one shade darker than mirrored in light, so role text on its own tint stays readable):
+  // Roles (one shade darker than mirrored in light, so role text on its own tint stays readable).
+  // Info is neutral, so only problems and changes stand out in color:
   const accent = [violet[400], violet[700]] as const;
+  const accentMuted = alpha(accent, 0.6);
   const error = [red[400], red[700]] as const;
   const warning = mirror(amber, 300);
-  const info = [indigo[400], indigo[700]] as const;
-  const success = info;
-  const added = info;
-  const modified = [purple[400], purple[700]] as const;
+  const info = foregroundSecondary;
+  const success = [indigo[400], indigo[700]] as const;
+  const added = success;
+  // Halfway between `added` (indigo) and `removed` (red); One shade lighter, since fuchsia is far more saturated
+  // than indigo at the same shade (`300` has about the chroma of `indigo[400]`):
+  const modified = mirror(fuchsia, 300);
   const removed = error;
-  const match = mirror(teal, 200);
-  const conflict = [fuchsia[400], fuchsia[700]] as const;
+  const match = mirror(teal, 200); // Teal is reserved for search matches, so they stand out.
+  const conflict = [amber[400], lightness(amber[600], 0.93)] as const;
   const offline = [coral[400], coral[700]] as const;
-  const ai = modified;
+  const ai = accent;
   const roleHover = [1.1, 0.9] as const; // Hovered fills get brighter in dark and darker in light.
 
   return defineTheme({
     token: {
-      annotation: [gray[200], gray[500]],
-      comment: [gray[400], gray[300]],
-      constant: mirror(purple, 300),
+      annotation: foregroundSecondary,
+      comment: foregroundFaint,
+      constant: { DEFAULT: mirror(violet, 300), language: mirror(fuchsia, 200) }, // `language`: `true`, `null`, …
+      diff: { added, removed, modified }, // Inserted / deleted / changed lines in diffs.
       function: mirror(cyan, 200),
       keyword: {
         DEFAULT: mirror(red, 400),
-        secondary: mirror(coral, 400),
+        secondary: [orange[400], lightness(orange[600], 0.97)],
         special: mirror(red, 300),
       },
       namespace: [gray[100], gray[600]],
-      number: mirror(orchid, 400),
+      number: { DEFAULT: mirror(fuchsia, 300), unit: mirror(fuchsia, 400) }, // `unit`: `px`, `ms`, `u8`, …
       operator: mirror(rose, 400),
       placeholder: mirror(amber, 200),
       property: mirror(coral, 300),
-      propertyName: mirror(cyan, 100),
-      punctuation: [gray[300], gray[400]],
+      propertyName: [lightness(cyan[100], 1.03), cyan[900]],
+      punctuation: foregroundMuted,
       storage: mirror(indigo, 200),
-      string: { DEFAULT: mirror(indigo, 400), secondary: mirror(indigo, 300) },
+      string: {
+        DEFAULT: [indigo[400], indigo[700]],
+        secondary: [indigo[300], lightness(indigo[600], 0.97)],
+      },
       tag: mirror(violet, 400),
       text: [gray[50], gray[900]],
       type: mirror(green, 200),
@@ -116,7 +126,7 @@ export function isoluxPro() {
       background: {
         DEFAULT: background,
         sidebar: [gray[900], lightness(gray[50], 0.99)],
-        raised: [gray[800], lightness(gray[50], 0.97)],
+        raised,
         raisedHover: [gray[500], lightness(gray[100], 1.02)],
         popover: [gray[800], white],
         popoverHeader: [gray[700], lightness(gray[50], 0.97)],
@@ -137,7 +147,7 @@ export function isoluxPro() {
         strong: [gray[50], gray[950]],
         secondary: foregroundSecondary,
         muted: foregroundMuted,
-        faint: [gray[400], gray[300]],
+        faint: foregroundFaint,
         dimmed: [gray[500], gray[200]],
         soft: alpha(foreground, 0.7),
         faded: alpha(foregroundMuted, 0.5),
@@ -148,17 +158,17 @@ export function isoluxPro() {
         code: alpha(overlay, 0.6),
       },
       border: {
-        DEFAULT: [gray[600], gray[100]],
+        DEFAULT: border,
         strong: borderStrong,
         subtle: [gray[700], lightness(gray[100], 1.02)],
         faint: [gray[800], lightness(gray[50], 0.96)],
-        focus: [gray[400], gray[300]],
+        focus: foregroundFaint,
         input: borderStrong,
-        indicator: [gray[300], gray[400]],
+        indicator: foregroundMuted,
         inactive: alpha(borderStrong, 0.7),
         group: alpha(overlay, [0.2, 0.15]),
       },
-      guide: { DEFAULT: [gray[600], gray[100]], active: [gray[400], gray[300]] },
+      guide: { DEFAULT: border, active: foregroundFaint },
       ruler: { border: alpha([gray[600], gray[200]], 0.6), cursor: alpha(foregroundMuted, 0.8) },
       shadow: alpha(shadow, [0.4, 0.15]),
       opacity: { unnecessary: alpha(shadow, 0.6), minimap: alpha(shadow, 0.8) },
@@ -194,7 +204,7 @@ export function isoluxPro() {
         subtle: alpha(overlay, 0.1),
         strong: alpha(overlay, 0.2),
         stronger: alpha(overlay, 0.25),
-        occurrence: alpha([gray[400], gray[300]], 0.7),
+        occurrence: alpha(foregroundFaint, 0.7),
         message: alpha(foregroundSecondary, 0.1),
       },
       whitespace: alpha(overlay, 0.15),
@@ -205,13 +215,14 @@ export function isoluxPro() {
       accent: {
         DEFAULT: accent,
         hover: lightness(accent, roleHover),
+        strong: lightness(accent, roleHover), // Accent text on selected items.
         foreground: onColor({ backgrounds: [accent], candidates: onFill }),
         subtle: alpha(accent, 0.1),
         soft: alpha(accent, 0.15),
         drop: alpha(accent, 0.3),
-        muted: alpha(accent, 0.6),
+        muted: accentMuted,
         mutedForeground: onColor({
-          backgrounds: [alpha(accent, 0.6)],
+          backgrounds: [accentMuted],
           candidates: onFill,
           over: background,
         }),
@@ -242,10 +253,9 @@ export function isoluxPro() {
       },
       info: {
         DEFAULT: info,
-        background: mirror(indigo, 950),
+        background: raised,
         faint: alpha(info, 0.05),
         subtle: alpha(info, 0.1),
-        highlight: alpha(info, 0.3),
       },
       success: {
         DEFAULT: success,
@@ -302,55 +312,38 @@ export function isoluxPro() {
       ansi: {
         foreground: mirror(indigo, 200),
         black: [gray[600], gray[800]],
-        red: mirror(red, 400),
+        red: [red[400], red[700]],
         green: mirror(green, 200),
         yellow: mirror(amber, 300),
-        blue: mirror(indigo, 500),
-        magenta: mirror(violet, 400),
+        blue: [indigo[400], indigo[800]],
+        magenta: [violet[400], violet[700]],
         cyan: mirror(cyan, 200),
         white: [gray[100], gray[300]],
         brightBlack: gray[400],
         brightRed: mirror(red, 300),
         brightGreen: mirror(green, 100),
         brightYellow: mirror(amber, 200),
-        brightBlue: mirror(indigo, 400),
-        brightMagenta: mirror(purple, 300),
+        brightBlue: mirror(indigo, 300),
+        brightMagenta: mirror(violet, 300),
         brightCyan: mirror(cyan, 100),
         brightWhite: [gray[50], gray[200]],
       },
       bracket: {
-        1: {
-          DEFAULT: mirror(indigo, 500),
-          guide: mirror(indigo, 950),
-          guideActive: mirror(indigo, 600),
-        },
-        2: {
-          DEFAULT: mirror(violet, 400),
-          guide: mirror(violet, 950),
-          guideActive: mirror(violet, 500),
-        },
-        3: {
-          DEFAULT: mirror(purple, 400),
-          guide: mirror(purple, 950),
-          guideActive: mirror(purple, 600),
-        },
-        4: {
-          DEFAULT: mirror(orchid, 400),
-          guide: mirror(orchid, 950),
-          guideActive: mirror(orchid, 600),
-        },
-        5: {
-          DEFAULT: mirror(fuchsia, 400),
-          guide: mirror(fuchsia, 950),
-          guideActive: mirror(fuchsia, 600),
-        },
-        6: { DEFAULT: mirror(pink, 400), guide: mirror(pink, 950), guideActive: mirror(pink, 600) },
+        match: alpha(overlay, 0.4), // Border around matching brackets (same for every level).
+        // Alternating cool and warm hues instead of a gradient, so neighboring levels (also from `6` back to `1`)
+        // are as different as possible:
+        1: bracket(indigo),
+        2: bracket(amber),
+        3: bracket(fuchsia),
+        4: bracket(cyan),
+        5: bracket(red),
+        6: bracket(green),
       },
       chart: {
         blue: mirror(indigo, 500),
         green: mirror(indigo, 300),
-        orange: mirror(coral, 400),
-        purple: mirror(purple, 400),
+        orange: mirror(orange, 400),
+        purple: mirror(violet, 400),
         red: mirror(red, 400),
         yellow: mirror(amber, 300),
       },
@@ -365,17 +358,17 @@ export function isoluxPro() {
       },
       graph: {
         1: mirror(indigo, 400),
-        2: mirror(purple, 400),
+        2: mirror(violet, 400),
         3: mirror(pink, 400),
         4: mirror(amber, 300),
-        5: mirror(teal, 200),
+        5: mirror(cyan, 200),
         baseRef: mirror(coral, 400),
       },
       extension: { private: alpha(overlay, 0.4), sponsor: mirror(fuchsia, 400) },
       lightBulb: mirror(orange, 400),
-      renamed: mirror(orange, 300),
+      renamed: [orange[300], orange[800]],
       running: mirror(orange, 400),
-      submodule: mirror(violet, 400),
+      submodule: mirror(cyan, 200),
     },
   });
 }

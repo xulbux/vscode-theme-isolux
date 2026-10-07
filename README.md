@@ -14,7 +14,7 @@ Isolux Theme
 </div>
 
 This VS Code extension contains themes with a calm, neutral base and colorful, easy-to-tell-apart syntax highlighting.<br>
-Every color family has **the same perceived brightness**, so no color stands out more than another.
+Every color family is derived from a base color with **the same perceived brightness**, so no hue stands out more than another.
 
 > <br>
 > 🎨 To get a better feeling of how the themes look in the editor, continue at the <a href="#previews"><b>previews</b></a>.
@@ -54,15 +54,19 @@ ext install xulbux.theme-isolux
     </tr>
     <tr>
       <td align="left"><b>Balanced Colors</b></td>
-      <td align="left">All syntax colors share the same perceived brightness (OKLCH lightness).</td>
+      <td align="left">All color families are generated from base colors of the same perceived brightness (OKLCH lightness).</td>
     </tr>
     <tr>
       <td align="left"><b>Semantic Highlighting</b></td>
-      <td align="left">Full support for semantic tokens, for more accurate highlighting in supported languages.</td>
+      <td align="left">Semantic tokens are mapped onto the same colors as the TextMate scopes, for more accurate highlighting that stays consistent across languages.</td>
+    </tr>
+    <tr>
+      <td align="left"><b>Distinct Syntax Colors</b></td>
+      <td align="left">Syntax colors are checked to be clearly distinguishable from each other (OKLab color distance).</td>
     </tr>
     <tr>
       <td align="left"><b>Readable Contrast</b></td>
-      <td align="left">Text colors are checked against their backgrounds (WCAG AA).</td>
+      <td align="left">Text colors are checked against their backgrounds (WCAG AA) in both variants.</td>
     </tr>
     <tr>
       <td align="left"><b>Complete UI</b></td>
@@ -77,7 +81,7 @@ ext install xulbux.theme-isolux
 
 ## Configuration ⚙️
 
-1.  Open the command input by pressing `Ctrl(⌘) + Shift + P` or the `F1` key.
+1.  Open the command input by pressing <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> or the <kbd>F1</kbd> key.
 
 2.  Type «*color theme*» and select `Preferences: Color Theme` from the list.
 

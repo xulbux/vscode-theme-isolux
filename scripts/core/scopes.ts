@@ -9,12 +9,13 @@
  */
 
 import type { ColorScope, ResolvedToken, TokenGroup } from '../types/index.ts';
+import { TOKEN_GROUPS, TOKEN_NAME_SEPARATOR } from './tokens.ts';
 
 // ---------------------------------------- CONSTS ---------------------------------------
 
 /** The token groups allowed in each scope. */
 const SCOPE_GROUPS: Readonly<Record<ColorScope, readonly TokenGroup[]>> = {
-  any: ['ui', 'token'],
+  any: TOKEN_GROUPS,
   syntax: ['token'],
   ui: ['ui'],
 };
@@ -44,9 +45,13 @@ export function scopeOfColorKey(key: string): ColorScope {
   return CATEGORY_KEY_PREFIXES.some((prefix) => key.startsWith(prefix)) ? 'any' : 'ui';
 }
 
-/** Get the token groups allowed in a scope. */
-export function groupsOfScope(scope: ColorScope): readonly TokenGroup[] {
-  return SCOPE_GROUPS[scope];
+/**
+ * Filter token names down to the ones allowed in `scope` (by their group, the first segment of the name).
+ * @returns The allowed names, in their original order.
+ */
+export function tokenNamesInScope(names: Iterable<string>, scope: ColorScope): string[] {
+  const groups: readonly string[] = SCOPE_GROUPS[scope];
+  return [...names].filter((name) => groups.includes(name.split(TOKEN_NAME_SEPARATOR, 1)[0]));
 }
 
 /** Whether a token may be used in `scope`. */

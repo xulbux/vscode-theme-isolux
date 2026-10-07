@@ -10,10 +10,12 @@ import type { BuildIssue } from '../types/index.ts';
 
 // -------------------------------------- INTERNALS --------------------------------------
 
+/** Get the dimmed `[time]` prefix of a log line. */
 function timestamp(): string {
   return styleText('gray', `[${new Date().toLocaleTimeString()}]`);
 }
 
+/** Print every issue on its own indented line (`path: message`). */
 function logIssues(issues: readonly BuildIssue[]): void {
   for (const issue of issues) {
     process.stderr.write(`    ${styleText('yellow', issue.path)}: ${issue.message}\n`);

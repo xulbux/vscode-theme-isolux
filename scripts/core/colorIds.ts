@@ -8,7 +8,9 @@
  * - the user's installed extensions (e.g., in `~/.vscode/extensions`; The data folder is named by the
  *   installation's `product.json`, see `getUserExtensionsDir`), only the newest version of each
  *
- * They're read on every build (≈ 0.2 s), so they always match the installed VS Code version.
+ * They always match the installed VS Code version: the result is cached (see `readVsCodeColorIds`), keyed by
+ * everything it's read from (the installation, its version and the modification times of the bundle and the
+ * extension folders), so any update, installed or removed extension invalidates it.
  * The VS Code installation is detected automatically (see `findAppRoot`).
  */
 
@@ -16,7 +18,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { VsCodeColorIds } from '../types/index.ts';
 import { listDirectories, readJson } from '../utils/fs.ts';
-import { escapeRegExp } from '../utils/strings.ts';
+import { escapeRegExp, findStringEnd } from '../utils/strings.ts';
 import {
   findAppRoot,
   getUserExtensionsDir,
@@ -77,6 +79,14 @@ interface ExtensionColors {
 /** Color IDs mapped to their description (empty if none was found). */
 type DescriptionMap = Map<string, string>;
 
+/** The content of the cache file (see `readVsCodeColorIds`). */
+interface ColorIdsCache {
+  /** Identifies the inputs the color IDs were read from (see `getCacheKey`). */
+  key: string;
+  /** The cached color IDs. */
+  result: VsCodeColorIds;
+}
+
 // ---------------------------------------- CONSTS ---------------------------------------
 
 /** The English UI strings of the bundle, which references them by index (`localize(<index>, null)`). */
@@ -90,6 +100,9 @@ const MIN_CORE_COLOR_COUNT = 500;
 
 /** Prefix of the terminal ANSI colors, which are registered in a loop (named by the rest of the ID). */
 const TERMINAL_ANSI_PREFIX = 'terminal.ansi';
+
+/** Version of the extraction logic; Bump it to invalidate existing caches when the extraction changes. */
+const CACHE_VERSION = 1;
 
 // ------------------------------------ REGEX PATTERNS -----------------------------------
 
@@ -119,18 +132,6 @@ function addColor(colors: DescriptionMap, id: string, description: string): void
   if (!colors.get(id)) {
     colors.set(id, description);
   }
-}
-
-/**
- * Find the index of the closing quote of the string literal starting at `start`.
- */
-function findStringEnd(code: string, start: number): number {
-  const quote = code[start];
-  let index = start + 1;
-  while (index < code.length && code[index] !== quote) {
-    index += code[index] === '\\' ? 2 : 1;
-  }
-  return index;
 }
 
 /**
@@ -372,14 +373,51 @@ function extractExtensionColors(extensionsDir: string): ExtensionColors {
   return { colors, extensions: [...extensions] };
 }
 
-// -------------------------------------- PUBLIC API -------------------------------------
+/** Get the modification time of a file or folder (ms), or `0` if it doesn't exist. */
+function modifiedAt(file: string): number {
+  return fs.statSync(file, { throwIfNoEntry: false })?.mtimeMs ?? 0;
+}
 
 /**
- * Read every theme color ID (with its description) known to the locally installed VS Code and extensions.
- * @throws {Error} If no VS Code installation is found or its workbench bundle format isn't recognized.
+ * Build the cache key of a VS Code installation: everything the color IDs are read from.
+ * Installing, updating or removing an extension changes the modification time of its extensions folder.
  */
-export function readVsCodeColorIds(): VsCodeColorIds {
-  const appRoot = findAppRoot();
+function getCacheKey(appRoot: string): string {
+  const userExtensionsDir = getUserExtensionsDir(appRoot);
+  return JSON.stringify([
+    CACHE_VERSION,
+    appRoot,
+    readVsCodeVersion(appRoot),
+    modifiedAt(path.join(appRoot, WORKBENCH_BUNDLE)),
+    modifiedAt(path.join(appRoot, NLS_MESSAGES)),
+    modifiedAt(path.join(appRoot, 'extensions')),
+    modifiedAt(userExtensionsDir),
+    modifiedAt(path.join(userExtensionsDir, 'extensions.json')),
+  ]);
+}
+
+/** Read the cached color IDs, or `undefined` if there's no valid cache for `key`. */
+function readCache(cacheFile: string, key: string): VsCodeColorIds | undefined {
+  try {
+    const cache = readJson(cacheFile) as Partial<ColorIdsCache>;
+    return cache.key === key ? cache.result : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Write the color IDs to the cache; A failing write only costs the next build some time, so it's ignored. */
+function writeCache(cacheFile: string, cache: ColorIdsCache): void {
+  try {
+    fs.mkdirSync(path.dirname(cacheFile), { recursive: true });
+    fs.writeFileSync(cacheFile, JSON.stringify(cache));
+  } catch {
+    // Not cached; The color IDs are read again next time.
+  }
+}
+
+/** Read every theme color ID (with its description) from a VS Code installation and the extensions. */
+function extractColorIds(appRoot: string): VsCodeColorIds {
   const core = extractCoreColors(appRoot);
   const builtIn = extractExtensionColors(path.join(appRoot, 'extensions'));
   const user = extractExtensionColors(getUserExtensionsDir(appRoot));
@@ -394,4 +432,26 @@ export function readVsCodeColorIds(): VsCodeColorIds {
     extensions: user.extensions.toSorted(),
     vscodeVersion: readVsCodeVersion(appRoot),
   };
+}
+
+// -------------------------------------- PUBLIC API -------------------------------------
+
+/**
+ * Read every theme color ID (with its description) known to the locally installed VS Code and extensions.
+ * @param cacheFile   JSON file to cache the result in (it's only read again if nothing it depends on changed).
+ * @throws {Error} If no VS Code installation is found or its workbench bundle format isn't recognized.
+ */
+export function readVsCodeColorIds(cacheFile?: string): VsCodeColorIds {
+  const appRoot = findAppRoot();
+  if (cacheFile === undefined) {
+    return extractColorIds(appRoot);
+  }
+  const key = getCacheKey(appRoot);
+  const cached = readCache(cacheFile, key);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const result = extractColorIds(appRoot);
+  writeCache(cacheFile, { key, result });
+  return result;
 }

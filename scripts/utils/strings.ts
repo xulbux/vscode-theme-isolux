@@ -62,6 +62,20 @@ export function didYouMean(input: string, candidates: Iterable<string>): string 
   return closest === undefined ? '' : ` Did you mean "${closest}"?`;
 }
 
+/**
+ * Find the index of the closing quote of the string literal whose opening quote (`"`, `'` or `` ` ``) is at
+ * `start`, honoring escape sequences.
+ * @returns The index of the closing quote, or `text.length` if the literal isn't closed.
+ */
+export function findStringEnd(text: string, start: number): number {
+  const quote = text[start];
+  let i = start + 1;
+  while (i < text.length && text[i] !== quote) {
+    i += text[i] === '\\' ? 2 : 1;
+  }
+  return Math.min(i, text.length);
+}
+
 /** Get the message of a caught error (or the value itself, if something other than an `Error` was thrown). */
 export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -70,43 +84,4 @@ export function errorMessage(error: unknown): string {
 /** Format a count with a noun, adding a plural `s` unless the count is `1` (e.g., `3 warnings`). */
 export function pluralize(count: number, noun: string): string {
   return `${count} ${noun}${count === 1 ? '' : 's'}`;
-}
-
-/**
- * Build a regular expression alternation (without anchors) that matches exactly the integers
- * from `min` to `max` (both inclusive), except the `excluded` ones.
- * Integers that only differ in their last digit are merged into a character class (e.g., `5[0-9]`).
- *
- * @param min        The lowest integer to match (not negative).
- * @param max        The highest integer to match.
- * @param excluded   Integers within the range that must not match.
- */
-export function integerRangePattern(
-  min: number,
-  max: number,
-  excluded: readonly number[] = []
-): string {
-  // Group the last digits by the leading digits (e.g., `10` → `[1, …, 9]` for 101 – 109).
-  const groups = new Map<string, number[]>();
-  for (let value = min; value <= max; value += 1) {
-    if (!excluded.includes(value)) {
-      const prefix = value < 10 ? '' : String(Math.floor(value / 10));
-      groups.set(prefix, [...(groups.get(prefix) ?? []), value % 10]);
-    }
-  }
-
-  const alternatives: string[] = [];
-  for (const [prefix, digits] of groups) {
-    // Split the digits into consecutive runs, each becoming a single digit or a range.
-    let runStart = 0;
-    for (let i = 1; i <= digits.length; i += 1) {
-      if (i === digits.length || digits[i] !== digits[i - 1] + 1) {
-        const first = digits[runStart];
-        const last = digits[i - 1];
-        alternatives.push(first === last ? `${prefix}${first}` : `${prefix}[${first}-${last}]`);
-        runStart = i;
-      }
-    }
-  }
-  return `(?:${alternatives.join('|')})`;
 }

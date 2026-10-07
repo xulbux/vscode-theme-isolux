@@ -3,6 +3,7 @@
  */
 
 import type { TokenColorRole, TokenColorVisitor } from '../types/index.ts';
+import { isHexColor } from './color.ts';
 import { isPlainObject } from './object.ts';
 
 // ---------------------------------------- CONSTS ---------------------------------------
@@ -15,6 +16,7 @@ const SEMANTIC_STYLE_COLOR_KEYS: readonly TokenColorRole[] = ['foreground'];
 
 // -------------------------------------- INTERNALS --------------------------------------
 
+/** Call `visit` for every color property of a token style (`keys`) that is set. */
 function visitStyle(
   style: Record<string, unknown>,
   keys: readonly TokenColorRole[],
@@ -38,6 +40,15 @@ export function colorKeyPath(key: string): string {
 /** Get the `colors` object of a theme (an empty object if it isn't set or isn't an object). */
 export function readColors(theme: Readonly<Record<string, unknown>>): Record<string, unknown> {
   return isPlainObject(theme.colors) ? theme.colors : {};
+}
+
+/** Read a resolved `colors` value; Values that aren't hex colors (yet) are treated as not set. */
+export function readHexColor(
+  colors: Readonly<Record<string, unknown>>,
+  key: string
+): string | undefined {
+  const value = colors[key];
+  return isHexColor(value) ? value : undefined;
 }
 
 /**

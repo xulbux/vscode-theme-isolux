@@ -14,9 +14,10 @@ theme/
 # Generated JSON schemas (only used while editing the theme sources):
 dist/*.schema.json
 
-# Build scripts & dependencies:
+# Build scripts, tests & dependencies:
 node_modules/
 scripts/
+test/
 
 # Config files:
 .gitignore
@@ -24,5 +25,4 @@ scripts/
 .oxfmtrc.json
 .oxlintrc.json
 pnpm-lock.yaml
-pnpm-workspace.yaml
 tsconfig.json

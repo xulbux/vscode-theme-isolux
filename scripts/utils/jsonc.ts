@@ -10,6 +10,7 @@
  */
 
 import type { BuildIssue } from '../types/index.ts';
+import { findStringEnd } from './strings.ts';
 
 // ---------------------------------------- TYPES ----------------------------------------
 
@@ -32,6 +33,7 @@ const IDENTIFIER_RX = /^[A-Za-z_$][\w$]*$/;
 
 // -------------------------------------- INTERNALS --------------------------------------
 
+/** Check if a character is JSON whitespace. */
 function isWhitespace(char: string): boolean {
   return char === ' ' || char === '\t' || char === '\n' || char === '\r';
 }
@@ -45,17 +47,6 @@ function blank(chars: string[], start: number, end: number): void {
       chars[i] = ' ';
     }
   }
-}
-
-/**
- * Find the index of the closing quote of the string literal whose opening quote is at `start`.
- */
-function findStringEnd(text: string, start: number): number {
-  let i = start + 1;
-  while (i < text.length && text[i] !== '"') {
-    i += text[i] === '\\' ? 2 : 1;
-  }
-  return i;
 }
 
 /**

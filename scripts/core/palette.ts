@@ -27,7 +27,7 @@ import { generateShades, TARGET_LIGHTNESS, validateBaseColor } from './shades.ts
  * Allowed shade steps (the Tailwind steps).
  * Restricting the shades keeps the palette small and prevents near-duplicate in-between colors.
  */
-export const SHADES: readonly Shade[] = [...TARGET_LIGHTNESS.keys()] as Shade[];
+const SHADES: readonly Shade[] = [...TARGET_LIGHTNESS.keys()] as Shade[];
 
 /** Every `ThemeColor` created by `createThemeColor` (to tell them apart from hand-written objects). */
 const THEME_COLORS = new WeakSet<object>();

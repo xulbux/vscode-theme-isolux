@@ -82,10 +82,10 @@ export const OPACITY_STEPS: ReadonlyMap<number, string> = new Map([
  * Lowest allowed lightness factor (of the color's perceived lightness, see `scaleLightness`).
  * Lightness adjustments are meant for subtle variants; Bigger differences should use another shade.
  */
-export const MIN_LIGHTNESS = 0.5;
+const MIN_LIGHTNESS = 0.5;
 
 /** Highest allowed lightness factor (of the color's perceived lightness, see `scaleLightness`). */
-export const MAX_LIGHTNESS = 1.5;
+const MAX_LIGHTNESS = 1.5;
 
 /** The key that stands for the group itself (e.g., `ui.foreground` for `ui: { foreground: { DEFAULT } }`). */
 const DEFAULT_KEY = 'DEFAULT';

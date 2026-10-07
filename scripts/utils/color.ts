@@ -1,5 +1,5 @@
 /**
- * Color math – Conversions between sRGB hex and OKLCH, gamut mapping and WCAG contrast.
+ * Color math – Conversions between sRGB hex and OKLCH, gamut mapping, WCAG contrast and color distance.
  *
  * OKLCH (https://bottosson.github.io/posts/oklab/) is a perceptual color space:
  * - `l` – OKLCH lightness (`0` = black, `1` = white)
@@ -37,6 +37,9 @@ const CHROMA_SEARCH_STEPS = 24;
 /** Upper bound for the chroma search; No sRGB or Display P3 color has a higher chroma. */
 const MAX_SEARCH_CHROMA = 0.4;
 
+/** OKLCH chroma below which a color counts as neutral (gray, see `isNeutralColor`). */
+const NEUTRAL_CHROMA = 0.03;
+
 /** Linear sRGB → linear Display P3 (both use the D65 white point). */
 const SRGB_TO_P3: readonly Rgb[] = [
   [0.8224621209, 0.177537994, 0],
@@ -58,7 +61,7 @@ const TOE_K3 = (1 + TOE_K1) / (1 + TOE_K2);
 const HEX_DIGIT_PATTERN = '[0-9A-Fa-f]';
 
 /** Pattern of an opaque `#RRGGBB` hex color (without anchors). */
-export const OPAQUE_HEX_PATTERN = `#${HEX_DIGIT_PATTERN}{6}`;
+const OPAQUE_HEX_PATTERN = `#${HEX_DIGIT_PATTERN}{6}`;
 
 // ------------------------------------ REGEX PATTERNS -----------------------------------
 
@@ -296,4 +299,24 @@ export function contrastRatio(first: string, second: string): number {
   const a = relativeLuminance(first);
   const b = relativeLuminance(second);
   return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+/**
+ * Perceptual distance between two opaque colors (Euclidean distance in OKLab, `ΔE_OK`).
+ * About `0.02` is a just noticeable difference; Colors closer than `0.05` are easily confused at a glance.
+ */
+export function deltaEOk(first: string, second: string): number {
+  const a = hexToOklch(first);
+  const b = hexToOklch(second);
+  const toRadians = Math.PI / 180;
+  return Math.hypot(
+    a.l - b.l,
+    a.c * Math.cos(a.h * toRadians) - b.c * Math.cos(b.h * toRadians),
+    a.c * Math.sin(a.h * toRadians) - b.c * Math.sin(b.h * toRadians)
+  );
+}
+
+/** Check if an opaque color is (almost) gray, i.e., its OKLCH chroma is below `NEUTRAL_CHROMA`. */
+export function isNeutralColor(hex: string): boolean {
+  return hexToOklch(hex).c < NEUTRAL_CHROMA;
 }

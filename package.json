@@ -44,12 +44,14 @@
     "fmt:check": "oxfmt --check",
     "lint": "oxlint --fix",
     "lint:check": "oxlint",
+    "test": "node --test \"test/**/*.test.ts\"",
     "type-check": "tsc --noEmit",
-    "vscode:prepublish": "node scripts/build.ts",
+    "vscode:prepublish": "node scripts/build.ts --strict",
     "watch": "node --watch-path=theme --watch-path=scripts --watch-path=package.json scripts/build.ts"
   },
   "icon": "./assets/icon.png",
-  "engines": { "node": ">=26", "vscode": "^1.87.0" },
+  "engines": { "vscode": "^1.87.0" },
+  "devEngines": { "runtime": { "name": "node", "version": ">=22.18.0", "onFail": "error" } },
   "sponsor": { "url": "https://github.com/sponsors/xulbux" },
   "devDependencies": {
     "@types/node": "^26.6.4",

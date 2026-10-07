@@ -8,6 +8,28 @@ export interface BuildIssue {
   message: string;
 }
 
+/** A theme variant to build (one entry of `contributes.themes` in `package.json`). */
+export interface ThemeTarget {
+  /** The theme ID (e.g., `isolux-pro`). */
+  id: string;
+  /** The variant to build. */
+  variant: Variant;
+  /** The theme's display name. */
+  label: string;
+  /** File name of the built theme in `dist/` (e.g., `isolux-pro-dark.json`). */
+  fileName: string;
+}
+
+/** Everything the build needs from `package.json` (see `readManifest`). */
+export interface ManifestInfo {
+  /** The theme variants to build (valid entries of `contributes.themes`). */
+  targets: ThemeTarget[];
+  /** The extension's author (`Name <email>`), written into every theme. */
+  author: string | undefined;
+  /** The extension's maintainers (`Name <email>`), written into every theme. */
+  maintainers: string[];
+}
+
 /** Options of `compileTheme`. */
 export interface CompileOptions {
   /** The theme's display name (its `label` in `package.json`). */

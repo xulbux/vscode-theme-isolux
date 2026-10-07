@@ -50,7 +50,7 @@ interface FamilyProfile {
 // ---------------------------------------- CONSTS ---------------------------------------
 
 /** The shade that is set to the base color itself. */
-export const BASE_SHADE = 400;
+const BASE_SHADE = 400;
 
 /** Tailwind's chromatic color families, used as the reference (the neutral gray scales are left out). */
 const TAILWIND_FAMILIES = [
@@ -102,6 +102,10 @@ const BASE_LIGHTNESS_TOLERANCE = 0.002;
 
 // -------------------------------------- INTERNALS --------------------------------------
 
+/**
+ * Get the `TARGET_LIGHTNESS` of a shade.
+ * @throws {Error} If the shade isn't one of the Tailwind steps.
+ */
 function targetLightness(shade: number): number {
   const lightness = TARGET_LIGHTNESS.get(shade);
   if (lightness === undefined) {
@@ -170,15 +174,23 @@ function buildFamilyProfiles(): FamilyProfile[] {
   }).toSorted((a, b) => a.hue - b.hue);
 }
 
-const FAMILY_PROFILES = buildFamilyProfiles();
+/** The measured Tailwind family profiles (see `getFamilyProfiles`); Built on first use. */
+let familyProfiles: FamilyProfile[] | undefined = undefined;
+
+/** Get the shade profiles of every Tailwind color family, sorted by hue (measured once, on first use). */
+function getFamilyProfiles(): FamilyProfile[] {
+  familyProfiles ??= buildFamilyProfiles();
+  return familyProfiles;
+}
 
 /**
  * Get the shade profile for a hue, interpolated between the two Tailwind families closest to it.
  */
 function profileForHue(hue: number, shade: number): ShadeProfile {
-  const upperIndex = FAMILY_PROFILES.findIndex((family) => family.hue > hue);
-  const upper = FAMILY_PROFILES.at(upperIndex === -1 ? 0 : upperIndex);
-  const lower = FAMILY_PROFILES.at(upperIndex === -1 ? -1 : upperIndex - 1);
+  const profiles = getFamilyProfiles();
+  const upperIndex = profiles.findIndex((family) => family.hue > hue);
+  const upper = profiles.at(upperIndex === -1 ? 0 : upperIndex);
+  const lower = profiles.at(upperIndex === -1 ? -1 : upperIndex - 1);
   const lowerShade = lower?.shades.get(shade);
   const upperShade = upper?.shades.get(shade);
   if (lower === undefined || upper === undefined || !lowerShade || !upperShade) {

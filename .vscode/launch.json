@@ -1,0 +1,12 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // Opens a VS Code window with the themes of this repository; Run `pnpm run watch` to update them live.
+      "name": "Preview Themes",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}"]
+    }
+  ]
+}

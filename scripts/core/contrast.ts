@@ -14,8 +14,8 @@
  */
 
 import type { BuildIssue } from '../types/index.ts';
-import { composite, contrastRatio, isHexColor } from '../utils/color.ts';
-import { colorKeyPath, forEachTokenColor, readColors } from '../utils/theme.ts';
+import { composite, contrastRatio, isHexColor, isNeutralColor } from '../utils/color.ts';
+import { colorKeyPath, forEachTokenColor, readColors, readHexColor } from '../utils/theme.ts';
 
 // ---------------------------------------- TYPES ----------------------------------------
 
@@ -39,8 +39,11 @@ const TEXT = 4.5;
 /** Minimum contrast for dimmed text, icons and UI components (WCAG AA for large text / non-text). */
 const SECONDARY = 3;
 
-/** Minimum contrast for token colors (dimmed tokens like comments may go below `TEXT` on purpose). */
-const TOKEN = SECONDARY;
+/**
+ * Minimum contrast for neutral (gray) token colors; Dimmed tokens like comments and punctuation may go below
+ * `TEXT` on purpose, while colored tokens must reach `TEXT`.
+ */
+const NEUTRAL_TOKEN = SECONDARY;
 
 /** Surface used below translucent backgrounds without an explicit `over`. */
 const DEFAULT_SURFACE = 'editor.background';
@@ -48,297 +51,246 @@ const DEFAULT_SURFACE = 'editor.background';
 /** Fallback if the theme doesn't define `DEFAULT_SURFACE`. */
 const FALLBACK_SURFACE_HEX = '#000000';
 
+/** The `colors` key suffixes of a component state (see `statePairs`). */
+const STATE_SUFFIXES = { background: 'Background', foreground: 'Foreground' } as const;
+
+// -------------------------------------- INTERNALS --------------------------------------
+
+/** Get the `colors` key of a component state (e.g., `tab.activeBackground`, or `menu.background` for `''`). */
+function stateKey(component: string, state: string, suffix: string): string {
+  return state === '' ? `${component}.${suffix.toLowerCase()}` : `${component}.${state}${suffix}`;
+}
+
+/**
+ * Pair the foreground of component states with their backgrounds, e.g., `tab.activeForeground` on
+ * `tab.activeBackground` (state `active`), or `menu.foreground` on `menu.background` (state `''`).
+ *
+ * @param component   The `colors` key prefix (e.g., `tab`).
+ * @param states      The states to pair (`''` for the component itself).
+ * @param min         Minimum contrast ratio.
+ * @param over        Surface below translucent backgrounds (see `ContrastPair.over`).
+ */
+function statePairs(
+  component: string,
+  states: readonly string[],
+  min: number,
+  over?: string
+): ContrastPair[] {
+  return states.map((state) => {
+    const pair: ContrastPair = {
+      background: stateKey(component, state, STATE_SUFFIXES.background),
+      foreground: stateKey(component, state, STATE_SUFFIXES.foreground),
+      min,
+    };
+    if (over !== undefined) {
+      pair.over = over;
+    }
+    return pair;
+  });
+}
+
+/**
+ * Pair several foregrounds with the same background.
+ *
+ * @param background    The `colors` key of the background.
+ * @param foregrounds   The `colors` keys of the foregrounds, mapped to their minimum contrast ratio.
+ */
+function onBackground(
+  background: string,
+  foregrounds: Readonly<Record<string, number>>
+): ContrastPair[] {
+  return Object.entries(foregrounds).map(([foreground, min]) => ({ background, foreground, min }));
+}
+
+/**
+ * Pair a foreground with several backgrounds (e.g., a button's normal and hover background).
+ *
+ * @param foreground    The `colors` key of the foreground.
+ * @param backgrounds   The `colors` keys of the backgrounds.
+ * @param min           Minimum contrast ratio.
+ */
+function onBackgrounds(
+  foreground: string,
+  backgrounds: readonly string[],
+  min: number
+): ContrastPair[] {
+  return backgrounds.map((background) => ({ background, foreground, min }));
+}
+
 /**
  * The foreground / background pairs to check, grouped by workbench area.
  * Add a pair for every new foreground key that carries text, so its contrast is checked.
  */
 const CONTRAST_PAIRS: readonly ContrastPair[] = [
   // Editor:
-  { background: 'editor.background', foreground: 'editor.foreground', min: TEXT },
-  { background: 'editor.background', foreground: 'editorLineNumber.activeForeground', min: TEXT },
-  { background: 'editor.background', foreground: 'editorLineNumber.foreground', min: SECONDARY },
-  { background: 'editor.background', foreground: 'editorCodeLens.foreground', min: SECONDARY },
-  {
-    background: 'editorInlayHint.background',
-    foreground: 'editorInlayHint.foreground',
-    min: SECONDARY,
-  },
-  { background: 'editor.background', foreground: 'textLink.foreground', min: TEXT },
-  { background: 'editor.background', foreground: 'textLink.activeForeground', min: TEXT },
+  ...onBackground('editor.background', {
+    'editor.foreground': TEXT,
+    'editorCodeLens.foreground': SECONDARY,
+    'editorError.foreground': SECONDARY,
+    'editorInfo.foreground': SECONDARY,
+    'editorLineNumber.activeForeground': TEXT,
+    'editorLineNumber.foreground': SECONDARY,
+    'editorWarning.foreground': SECONDARY,
+    'textLink.activeForeground': TEXT,
+    'textLink.foreground': TEXT,
+  }),
+  ...statePairs('editorInlayHint', [''], SECONDARY),
+  ...statePairs('textPreformat', [''], TEXT),
+  ...statePairs('inlineChat', [''], TEXT),
+  ...onBackground('peekViewResult.background', {
+    'peekViewResult.fileForeground': TEXT,
+    'peekViewResult.lineForeground': TEXT,
+  }),
+  ...statePairs('peekViewResult', ['selection'], TEXT, 'peekViewResult.background'),
   // Tabs:
-  { background: 'tab.activeBackground', foreground: 'tab.activeForeground', min: TEXT },
-  { background: 'tab.inactiveBackground', foreground: 'tab.inactiveForeground', min: SECONDARY },
-  { background: 'tab.hoverBackground', foreground: 'tab.hoverForeground', min: TEXT },
-  { background: 'tab.selectedBackground', foreground: 'tab.selectedForeground', min: TEXT },
-  {
-    background: 'modernTab.activeBackground',
-    foreground: 'modernTab.activeForeground',
-    min: TEXT,
-    over: 'panel.background',
-  },
-  {
-    background: 'modernTab.hoverBackground',
-    foreground: 'modernTab.hoverForeground',
-    min: TEXT,
-    over: 'panel.background',
-  },
+  ...statePairs('tab', ['active', 'hover', 'selected'], TEXT),
+  ...statePairs('tab', ['inactive'], SECONDARY),
+  ...statePairs(
+    'tab',
+    ['unfocusedActive', 'unfocusedHover', 'unfocusedInactive'],
+    SECONDARY,
+    'editorGroupHeader.tabsBackground'
+  ),
+  ...statePairs('modernTab', ['active', 'hover'], TEXT, 'panel.background'),
   // Workbench parts:
-  { background: 'titleBar.activeBackground', foreground: 'titleBar.activeForeground', min: TEXT },
-  {
-    background: 'titleBar.inactiveBackground',
-    foreground: 'titleBar.inactiveForeground',
-    min: SECONDARY,
-  },
-  {
-    background: 'commandCenter.background',
-    foreground: 'commandCenter.foreground',
-    min: TEXT,
-    over: 'titleBar.activeBackground',
-  },
-  {
-    background: 'commandCenter.activeBackground',
-    foreground: 'commandCenter.activeForeground',
-    min: TEXT,
-    over: 'titleBar.activeBackground',
-  },
-  { background: 'activityBar.background', foreground: 'activityBar.foreground', min: SECONDARY },
-  {
-    background: 'activityBar.background',
-    foreground: 'activityBar.inactiveForeground',
-    min: SECONDARY,
-  },
-  {
-    background: 'activityBarTop.background',
-    foreground: 'activityBarTop.foreground',
-    min: SECONDARY,
-  },
-  {
-    background: 'activityBarTop.background',
-    foreground: 'activityBarTop.inactiveForeground',
-    min: SECONDARY,
-  },
-  { background: 'sideBar.background', foreground: 'sideBar.foreground', min: TEXT },
-  {
-    background: 'sideBarTitle.background',
-    foreground: 'sideBarTitle.foreground',
-    min: TEXT,
-    over: 'sideBar.background',
-  },
-  {
-    background: 'sideBarSectionHeader.background',
-    foreground: 'sideBarSectionHeader.foreground',
-    min: TEXT,
-    over: 'sideBar.background',
-  },
-  { background: 'panel.background', foreground: 'panelTitle.activeForeground', min: TEXT },
-  { background: 'panel.background', foreground: 'panelTitle.inactiveForeground', min: SECONDARY },
-  { background: 'terminal.background', foreground: 'terminal.foreground', min: TEXT },
-  { background: 'statusBar.background', foreground: 'statusBar.foreground', min: TEXT },
-  {
-    background: 'statusBar.debuggingBackground',
-    foreground: 'statusBar.debuggingForeground',
-    min: TEXT,
-  },
-  {
-    background: 'statusBarItem.remoteBackground',
-    foreground: 'statusBarItem.remoteForeground',
-    min: TEXT,
-    over: 'statusBar.background',
-  },
-  {
-    background: 'statusBarItem.errorBackground',
-    foreground: 'statusBarItem.errorForeground',
-    min: TEXT,
-    over: 'statusBar.background',
-  },
-  {
-    background: 'statusBarItem.warningBackground',
-    foreground: 'statusBarItem.warningForeground',
-    min: TEXT,
-    over: 'statusBar.background',
-  },
-  {
-    background: 'statusBarItem.offlineBackground',
-    foreground: 'statusBarItem.offlineForeground',
-    min: TEXT,
-    over: 'statusBar.background',
-  },
-  {
-    background: 'statusBarItem.remoteHoverBackground',
-    foreground: 'statusBarItem.remoteHoverForeground',
-    min: TEXT,
-    over: 'statusBar.background',
-  },
-  {
-    background: 'statusBarItem.errorHoverBackground',
-    foreground: 'statusBarItem.errorHoverForeground',
-    min: TEXT,
-    over: 'statusBar.background',
-  },
-  {
-    background: 'statusBarItem.warningHoverBackground',
-    foreground: 'statusBarItem.warningHoverForeground',
-    min: TEXT,
-    over: 'statusBar.background',
-  },
-  {
-    background: 'statusBarItem.offlineHoverBackground',
-    foreground: 'statusBarItem.offlineHoverForeground',
-    min: TEXT,
-    over: 'statusBar.background',
-  },
-  { background: 'breadcrumb.background', foreground: 'breadcrumb.foreground', min: SECONDARY },
+  ...statePairs('titleBar', ['active'], TEXT),
+  ...statePairs('titleBar', ['inactive'], SECONDARY),
+  ...statePairs('commandCenter', ['', 'active'], TEXT, 'titleBar.activeBackground'),
+  ...onBackground('commandCenter.inactiveBackground', {
+    'commandCenter.inactiveForeground': SECONDARY,
+  }),
+  ...statePairs('menubar', ['selection'], TEXT, 'titleBar.activeBackground'),
+  ...onBackground('activityBar.background', {
+    'activityBar.foreground': SECONDARY,
+    'activityBar.inactiveForeground': SECONDARY,
+  }),
+  ...onBackground('activityBarTop.background', {
+    'activityBarTop.foreground': SECONDARY,
+    'activityBarTop.inactiveForeground': SECONDARY,
+  }),
+  ...statePairs('sideBar', [''], TEXT),
+  ...statePairs('sideBarTitle', [''], TEXT, 'sideBar.background'),
+  ...statePairs('sideBarSectionHeader', [''], TEXT, 'sideBar.background'),
+  ...onBackground('sideBar.background', {
+    descriptionForeground: SECONDARY,
+    'gitDecoration.addedResourceForeground': TEXT,
+    'gitDecoration.conflictingResourceForeground': TEXT,
+    'gitDecoration.deletedResourceForeground': TEXT,
+    'gitDecoration.ignoredResourceForeground': SECONDARY,
+    'gitDecoration.modifiedResourceForeground': TEXT,
+    'gitDecoration.renamedResourceForeground': TEXT,
+    'gitDecoration.stageDeletedResourceForeground': TEXT,
+    'gitDecoration.stageModifiedResourceForeground': TEXT,
+    'gitDecoration.submoduleResourceForeground': TEXT,
+    'gitDecoration.untrackedResourceForeground': TEXT,
+  }),
+  ...onBackground('panel.background', {
+    'panelTitle.activeForeground': TEXT,
+    'panelTitle.inactiveForeground': SECONDARY,
+  }),
+  ...statePairs('terminal', [''], TEXT),
+  ...onBackground('terminal.background', {
+    'terminal.ansiBlue': TEXT,
+    'terminal.ansiBrightBlue': TEXT,
+    'terminal.ansiBrightCyan': TEXT,
+    'terminal.ansiBrightGreen': TEXT,
+    'terminal.ansiBrightMagenta': TEXT,
+    'terminal.ansiBrightRed': TEXT,
+    'terminal.ansiBrightYellow': TEXT,
+    'terminal.ansiCyan': TEXT,
+    'terminal.ansiGreen': TEXT,
+    'terminal.ansiMagenta': TEXT,
+    'terminal.ansiRed': TEXT,
+    'terminal.ansiYellow': TEXT,
+  }),
+  ...statePairs('statusBar', ['', 'debugging'], TEXT),
+  ...statePairs(
+    'statusBarItem',
+    [
+      'remote',
+      'error',
+      'warning',
+      'offline',
+      'remoteHover',
+      'errorHover',
+      'warningHover',
+      'offlineHover',
+    ],
+    TEXT,
+    'statusBar.background'
+  ),
+  ...statePairs(
+    'statusBarItem',
+    ['prominent', 'prominentHover'],
+    SECONDARY,
+    'statusBar.background'
+  ),
+  ...statePairs('breadcrumb', [''], SECONDARY),
+  ...onBackground('breadcrumb.background', { 'breadcrumb.focusForeground': SECONDARY }),
   // Lists:
-  {
-    background: 'list.activeSelectionBackground',
-    foreground: 'list.activeSelectionForeground',
-    min: TEXT,
-    over: 'sideBar.background',
-  },
-  {
-    background: 'list.inactiveSelectionBackground',
-    foreground: 'list.inactiveSelectionForeground',
-    min: TEXT,
-    over: 'sideBar.background',
-  },
-  {
-    background: 'list.hoverBackground',
-    foreground: 'list.hoverForeground',
-    min: TEXT,
-    over: 'sideBar.background',
-  },
-  {
-    background: 'list.focusBackground',
-    foreground: 'list.focusForeground',
-    min: TEXT,
-    over: 'sideBar.background',
-  },
-  { background: 'sideBar.background', foreground: 'list.deemphasizedForeground', min: SECONDARY },
+  ...statePairs(
+    'list',
+    ['activeSelection', 'inactiveSelection', 'hover', 'focus'],
+    TEXT,
+    'sideBar.background'
+  ),
+  ...onBackground('sideBar.background', {
+    'list.deemphasizedForeground': SECONDARY,
+    'list.highlightForeground': TEXT,
+  }),
+  ...onBackground('list.activeSelectionBackground', { 'list.focusHighlightForeground': TEXT }),
   // Controls:
-  { background: 'button.background', foreground: 'button.foreground', min: TEXT },
-  { background: 'button.hoverBackground', foreground: 'button.foreground', min: TEXT },
-  { background: 'button.secondaryBackground', foreground: 'button.secondaryForeground', min: TEXT },
-  {
-    background: 'button.secondaryHoverBackground',
-    foreground: 'button.secondaryForeground',
-    min: TEXT,
-  },
-  { background: 'extensionButton.background', foreground: 'extensionButton.foreground', min: TEXT },
-  {
-    background: 'extensionButton.hoverBackground',
-    foreground: 'extensionButton.foreground',
-    min: TEXT,
-  },
-  {
-    background: 'extensionButton.prominentBackground',
-    foreground: 'extensionButton.prominentForeground',
-    min: TEXT,
-  },
-  {
-    background: 'extensionButton.prominentHoverBackground',
-    foreground: 'extensionButton.prominentForeground',
-    min: TEXT,
-  },
-  { background: 'badge.background', foreground: 'badge.foreground', min: TEXT },
-  {
-    background: 'activityBarBadge.background',
-    foreground: 'activityBarBadge.foreground',
-    min: TEXT,
-  },
-  {
-    background: 'activityErrorBadge.background',
-    foreground: 'activityErrorBadge.foreground',
-    min: TEXT,
-  },
-  {
-    background: 'activityWarningBadge.background',
-    foreground: 'activityWarningBadge.foreground',
-    min: TEXT,
-  },
-  {
-    background: 'extensionBadge.remoteBackground',
-    foreground: 'extensionBadge.remoteForeground',
-    min: TEXT,
-  },
-  {
-    background: 'debugView.exceptionLabelBackground',
-    foreground: 'debugView.exceptionLabelForeground',
-    min: TEXT,
-  },
-  {
-    background: 'debugView.stateLabelBackground',
-    foreground: 'debugView.stateLabelForeground',
-    min: TEXT,
-  },
-  {
-    background: 'testing.message.error.badgeBackground',
-    foreground: 'testing.message.error.badgeForeground',
-    min: TEXT,
-  },
-  { background: 'input.background', foreground: 'input.foreground', min: TEXT },
-  { background: 'input.background', foreground: 'input.placeholderForeground', min: SECONDARY },
-  { background: 'dropdown.background', foreground: 'dropdown.foreground', min: TEXT },
-  {
-    background: 'inputValidation.errorBackground',
-    foreground: 'inputValidation.errorForeground',
-    min: TEXT,
-  },
-  {
-    background: 'inputValidation.warningBackground',
-    foreground: 'inputValidation.warningForeground',
-    min: TEXT,
-  },
-  {
-    background: 'inputValidation.infoBackground',
-    foreground: 'inputValidation.infoForeground',
-    min: TEXT,
-  },
+  ...onBackgrounds('button.foreground', ['button.background', 'button.hoverBackground'], TEXT),
+  ...onBackgrounds(
+    'button.secondaryForeground',
+    ['button.secondaryBackground', 'button.secondaryHoverBackground'],
+    TEXT
+  ),
+  ...onBackgrounds(
+    'extensionButton.foreground',
+    ['extensionButton.background', 'extensionButton.hoverBackground'],
+    TEXT
+  ),
+  ...onBackgrounds(
+    'extensionButton.prominentForeground',
+    ['extensionButton.prominentBackground', 'extensionButton.prominentHoverBackground'],
+    TEXT
+  ),
+  ...statePairs('badge', [''], TEXT),
+  ...statePairs('activityBarBadge', [''], TEXT),
+  ...statePairs('activityErrorBadge', [''], TEXT),
+  ...statePairs('activityWarningBadge', [''], TEXT),
+  ...statePairs('extensionBadge', ['remote'], TEXT),
+  ...statePairs('profileBadge', [''], TEXT),
+  ...statePairs('testing', ['coverCountBadge'], TEXT),
+  ...statePairs('debugView', ['exceptionLabel', 'stateLabel'], TEXT),
+  ...statePairs('testing.message.error', ['badge'], TEXT),
+  ...statePairs('keybindingLabel', [''], TEXT),
+  ...statePairs('input', [''], TEXT),
+  ...onBackground('input.background', { 'input.placeholderForeground': SECONDARY }),
+  ...statePairs('dropdown', [''], TEXT),
+  ...statePairs('inputValidation', ['error', 'warning', 'info'], TEXT),
   // Widgets and overlays:
-  { background: 'editorWidget.background', foreground: 'editorWidget.foreground', min: TEXT },
-  {
-    background: 'editorHoverWidget.background',
-    foreground: 'editorHoverWidget.foreground',
-    min: TEXT,
-  },
-  {
-    background: 'editorSuggestWidget.background',
-    foreground: 'editorSuggestWidget.foreground',
-    min: TEXT,
-  },
-  {
-    background: 'editorSuggestWidget.selectedBackground',
-    foreground: 'editorSuggestWidget.selectedForeground',
-    min: TEXT,
-    over: 'editorSuggestWidget.background',
-  },
-  { background: 'quickInput.background', foreground: 'quickInput.foreground', min: TEXT },
-  {
-    background: 'quickInputList.focusBackground',
-    foreground: 'quickInputList.focusForeground',
-    min: TEXT,
-    over: 'quickInput.background',
-  },
-  { background: 'menu.background', foreground: 'menu.foreground', min: TEXT },
-  {
-    background: 'menu.selectionBackground',
-    foreground: 'menu.selectionForeground',
-    min: TEXT,
-    over: 'menu.background',
-  },
-  { background: 'notifications.background', foreground: 'notifications.foreground', min: TEXT },
+  ...statePairs('editorWidget', [''], TEXT),
+  ...statePairs('editorHoverWidget', [''], TEXT),
+  ...statePairs('editorSuggestWidget', [''], TEXT),
+  ...statePairs('editorSuggestWidget', ['selected'], TEXT, 'editorSuggestWidget.background'),
+  ...onBackground('editorSuggestWidget.background', {
+    'editorSuggestWidget.highlightForeground': TEXT,
+  }),
+  ...onBackground('editorSuggestWidget.selectedBackground', {
+    'editorSuggestWidget.focusHighlightForeground': TEXT,
+  }),
+  ...statePairs('quickInput', [''], TEXT),
+  ...statePairs('quickInputList', ['focus'], TEXT, 'quickInput.background'),
+  ...statePairs('menu', [''], TEXT),
+  ...statePairs('menu', ['selection'], TEXT, 'menu.background'),
+  ...statePairs('notifications', [''], TEXT),
 ];
-
-// -------------------------------------- INTERNALS --------------------------------------
-
-/** Read a resolved color; Values that aren't hex colors (yet) are treated as not set. */
-function readColor(colors: Record<string, unknown>, key: string): string | undefined {
-  const value = colors[key];
-  return isHexColor(value) ? value : undefined;
-}
 
 /** Read the surface below translucent backgrounds without an explicit `over` (see `DEFAULT_SURFACE`). */
 function readSurface(colors: Record<string, unknown>): string {
-  return readColor(colors, DEFAULT_SURFACE) ?? FALLBACK_SURFACE_HEX;
+  return readHexColor(colors, DEFAULT_SURFACE) ?? FALLBACK_SURFACE_HEX;
 }
 
 /**
@@ -354,11 +306,11 @@ function readSolidBackground(
   colors: Record<string, unknown>,
   surface: string
 ): string | undefined {
-  const background = readColor(colors, pair.background);
+  const background = readHexColor(colors, pair.background);
   if (background === undefined) {
     return undefined;
   }
-  const below = pair.over === undefined ? surface : (readColor(colors, pair.over) ?? surface);
+  const below = pair.over === undefined ? surface : (readHexColor(colors, pair.over) ?? surface);
   return composite(background, below);
 }
 
@@ -381,7 +333,7 @@ function contrastIssue(path: string, ratio: number, min: number, against: string
 function checkPairs(colors: Record<string, unknown>, surface: string): BuildIssue[] {
   const issues: BuildIssue[] = [];
   for (const pair of CONTRAST_PAIRS) {
-    const foreground = readColor(colors, pair.foreground);
+    const foreground = readHexColor(colors, pair.foreground);
     const background = readSolidBackground(pair, colors, surface);
     const ratio =
       foreground === undefined || background === undefined
@@ -396,15 +348,20 @@ function checkPairs(colors: Record<string, unknown>, surface: string): BuildIssu
   return issues;
 }
 
-/** Check the foreground of every token color against the editor background. */
+/**
+ * Check the foreground of every token color against the editor background (`TEXT` for colored tokens,
+ * `NEUTRAL_TOKEN` for gray ones).
+ */
 function checkTokenColors(theme: Record<string, unknown>, editorBackground: string): BuildIssue[] {
   const issues: BuildIssue[] = [];
   forEachTokenColor(theme, (target, key, path, role) => {
     const foreground = target[key];
     if (role === 'foreground' && isHexColor(foreground)) {
-      const ratio = measure(foreground, editorBackground);
-      if (ratio < TOKEN) {
-        issues.push(contrastIssue(path, ratio, TOKEN, `"${DEFAULT_SURFACE}"`));
+      const solid = composite(foreground, editorBackground);
+      const min = isNeutralColor(solid) ? NEUTRAL_TOKEN : TEXT;
+      const ratio = contrastRatio(solid, editorBackground);
+      if (ratio < min) {
+        issues.push(contrastIssue(path, ratio, min, `"${DEFAULT_SURFACE}"`));
       }
     }
   });

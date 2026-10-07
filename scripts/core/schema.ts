@@ -17,7 +17,7 @@
 
 import type { ColorDescriptions, ColorScope, ThemeTokenMap } from '../types/index.ts';
 import { escapeRegExp } from '../utils/strings.ts';
-import { CATEGORY_KEY_PREFIXES, groupsOfScope, scopeOfColorKey } from './scopes.ts';
+import { CATEGORY_KEY_PREFIXES, scopeOfColorKey, tokenNamesInScope } from './scopes.ts';
 import { TRANSPARENT } from './theme.ts';
 import { VARIANTS } from './tokens.ts';
 
@@ -77,8 +77,7 @@ function buildTokenSchema(
   themes: readonly ThemeTokenMap[],
   scope: ColorScope
 ): Record<string, unknown> {
-  const groups = groupsOfScope(scope);
-  const allowed = names.filter((name) => groups.some((group) => name.startsWith(`${group}.`)));
+  const allowed = tokenNamesInScope(names, scope);
   return {
     enum: [TRANSPARENT, ...allowed],
     markdownEnumDescriptions: [

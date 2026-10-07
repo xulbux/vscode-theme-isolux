@@ -1,0 +1,53 @@
+# This workflow validates the Isolux themes on every push and PR.
+# It runs formatting checks, linting, type checking, unit tests, and verifies that the themes build without warnings.
+# (No VS Code is installed on the runner, so the build can't flag unknown color keys here – it does so locally.)
+
+name: CI
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['22', '23', '24', '25', '26']
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: 11
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check formatting
+        run: pnpm run fmt:check
+
+      - name: Lint
+        run: pnpm run lint:check
+
+      - name: Type check
+        run: pnpm run type-check
+
+      - name: Run tests
+        run: pnpm run test
+
+      - name: Build
+        run: pnpm run build:strict
