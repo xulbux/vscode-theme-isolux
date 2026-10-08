@@ -46,22 +46,7 @@ function bracket(scale: ShadeScale) {
 
 // -------------------------------------- PUBLIC API -------------------------------------
 
-const {
-  amber,
-  coral,
-  cyan,
-  fuchsia,
-  gray,
-  green,
-  indigo,
-  orange,
-  pink,
-  purple,
-  red,
-  rose,
-  teal,
-  violet,
-} = color;
+const { amber, cyan, fuchsia, gray, green, indigo, orange, purple, red, violet } = color;
 
 /** Isolux Pro – Neutral grays with a violet accent and colorful, clearly separated syntax colors. */
 export function isoluxPro() {
@@ -100,40 +85,36 @@ export function isoluxPro() {
   // than indigo at the same shade (`300` has about the chroma of `indigo[400]`):
   const modified = mirror(fuchsia, 300);
   const removed = error;
-  const match = mirror(teal, 200); // Teal is reserved for search matches, so they stand out.
+  const match = mirror(green, 200);
   const conflict = [amber[400], lightness(amber[600], 0.93)] as const;
-  const offline = [coral[400], coral[700]] as const;
+  const offline = [orange[400], orange[700]] as const;
   const ai = accent;
   const roleHover = [1.1, 0.9] as const; // Hovered fills get brighter in dark and darker in light.
 
   return defineTheme({
+    // Syntax: Every color has one meaning (keywords, operators, strings, functions, keys, types, values); Variables and
+    // parameters stay neutral, so they anchor the colors, and italic marks sub-roles (declarations, modifiers, built-in
+    // types, parameters).
     token: {
       annotation: foregroundSecondary,
       comment: foregroundFaint,
-      constant: { DEFAULT: mirror(purple, 300), language: mirror(fuchsia, 200) }, // `language`: `true`, `null`, …
+      constant: {
+        DEFAULT: mirror(purple, 300), // Numbers, enum members, CSS values, inline code, …
+        language: mirror(indigo, 200), // `true`, `null`, …
+        unit: mirror(purple, 400), // `px`, `ms`, `u8`, …
+      },
       diff: { added, removed, modified }, // Inserted / deleted / changed lines in diffs.
       function: mirror(cyan, 200),
-      keyword: {
-        DEFAULT: mirror(red, 400),
-        secondary: [orange[400], lightness(orange[600], 0.97)],
-        special: mirror(red, 300),
-      },
+      keyword: mirror(red, 400),
       namespace: [gray[100], gray[600]],
-      number: { DEFAULT: mirror(fuchsia, 300), unit: mirror(fuchsia, 400) }, // `unit`: `px`, `ms`, `u8`, …
-      operator: mirror(rose, 400),
-      placeholder: mirror(amber, 200),
-      property: mirror(coral, 300),
-      propertyName: [lightness(cyan[100], 1.03), cyan[900]],
+      operator: mirror(red, 300), // Operators and symbolic markers (`=`, `&&`, `=>`, `${`, escapes, regex syntax, …).
+      parameter: foreground, // Neutral like variables; Told apart by italic.
+      property: [lightness(cyan[100], 1.03), cyan[900]], // Properties, fields and keys (objects, JSON, CSS, attributes).
       punctuation: foregroundMuted,
-      storage: mirror(indigo, 200),
-      string: {
-        DEFAULT: [indigo[400], indigo[700]],
-        secondary: [indigo[300], lightness(indigo[600], 0.97)],
-      },
-      tag: mirror(violet, 400),
+      string: [indigo[400], indigo[700]],
       text: [gray[50], gray[900]],
-      type: mirror(green, 200),
-      variable: mirror(amber, 300),
+      type: mirror(orange, 300),
+      variable: foreground,
     },
 
     ui: {
@@ -362,7 +343,7 @@ export function isoluxPro() {
       },
       debug: {
         breakpoint: mirror(red, 400),
-        breakpointUnverified: mirror(coral, 400),
+        breakpointUnverified: mirror(orange, 400),
         pause: mirror(amber, 300),
         restart: mirror(indigo, 500),
         stackframe: mirror(indigo, 500),
@@ -372,10 +353,10 @@ export function isoluxPro() {
       graph: {
         1: mirror(indigo, 400),
         2: mirror(violet, 400),
-        3: mirror(pink, 400),
+        3: mirror(fuchsia, 400),
         4: mirror(amber, 300),
         5: mirror(cyan, 200),
-        baseRef: mirror(coral, 400),
+        baseRef: mirror(orange, 400),
       },
       extension: { private: alpha(overlay, 0.4), sponsor: mirror(fuchsia, 400) },
       lightBulb: mirror(orange, 400),

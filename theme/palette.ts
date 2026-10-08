@@ -10,10 +10,6 @@
 import { definePalette } from '../scripts/api.ts';
 
 export const color = definePalette({
-  amber: '#EC8C49',
-  coral: '#FA7D6C',
-  cyan: '#46BDB6',
-  fuchsia: '#E470F6',
   gray: {
     50: '#FAFAFA',
     100: '#E2E2E2',
@@ -27,13 +23,13 @@ export const color = definePalette({
     900: '#101010',
     950: '#000000',
   },
-  green: '#60C077',
-  indigo: '#909FFF',
-  orange: '#EF8862',
-  pink: '#F56FCA',
-  purple: '#C386FF',
   red: '#FF7680',
-  rose: '#FF6EA5',
-  teal: '#10C3A0',
+  orange: '#F2855A',
+  amber: '#EC8C49',
+  green: '#60C077',
+  cyan: '#46BDB6',
+  indigo: '#909FFF',
   violet: '#AF91FF',
+  purple: '#C386FF',
+  fuchsia: '#E470F6',
 });

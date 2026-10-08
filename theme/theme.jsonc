@@ -110,10 +110,10 @@
     "debugIcon.stepOutForeground": "ui.foreground",
     "debugIcon.stepOverForeground": "ui.foreground",
     "debugIcon.stopForeground": "ui.debug.stop",
-    "debugTokenExpression.boolean": "token.constant",
+    "debugTokenExpression.boolean": "token.constant.language",
     "debugTokenExpression.error": "ui.error",
     "debugTokenExpression.name": "token.variable",
-    "debugTokenExpression.number": "token.number",
+    "debugTokenExpression.number": "token.constant",
     "debugTokenExpression.string": "token.string",
     "debugTokenExpression.type": "token.type",
     "debugTokenExpression.value": "ui.foreground",
@@ -638,8 +638,8 @@
     "statusBarItem.warningForeground": "ui.warning",
     "statusBarItem.warningHoverBackground": "ui.warning.soft",
     "statusBarItem.warningHoverForeground": "ui.warning.hover",
-    "symbolIcon.arrayForeground": "token.storage",
-    "symbolIcon.booleanForeground": "token.constant",
+    "symbolIcon.arrayForeground": "token.type",
+    "symbolIcon.booleanForeground": "token.constant.language",
     "symbolIcon.classForeground": "token.type",
     "symbolIcon.colorForeground": "token.constant",
     "symbolIcon.constantForeground": "token.constant",
@@ -657,19 +657,19 @@
     "symbolIcon.methodForeground": "token.function",
     "symbolIcon.moduleForeground": "ui.foreground.secondary",
     "symbolIcon.namespaceForeground": "ui.foreground.secondary",
-    "symbolIcon.nullForeground": "token.constant",
-    "symbolIcon.numberForeground": "token.number",
+    "symbolIcon.nullForeground": "token.constant.language",
+    "symbolIcon.numberForeground": "token.constant",
     "symbolIcon.objectForeground": "token.variable",
     "symbolIcon.operatorForeground": "token.operator",
     "symbolIcon.packageForeground": "ui.foreground.secondary",
     "symbolIcon.propertyForeground": "token.property",
     "symbolIcon.referenceForeground": "token.variable",
-    "symbolIcon.snippetForeground": "token.tag",
+    "symbolIcon.snippetForeground": "token.keyword",
     "symbolIcon.stringForeground": "token.string",
     "symbolIcon.structForeground": "token.type",
     "symbolIcon.textForeground": "ui.foreground",
     "symbolIcon.typeParameterForeground": "token.type",
-    "symbolIcon.unitForeground": "token.number",
+    "symbolIcon.unitForeground": "token.constant.unit",
     "symbolIcon.variableForeground": "token.variable",
     "tab.activeBackground": "ui.background.tabs",
     "tab.activeBorder": "ui.background",
@@ -807,7 +807,8 @@
         "constant.numeric.line-number.match.find-in-files",
         "invalid", // Muted on purpose; VS Code also flags parts of signature help as invalid.
         "keyword.operator.assignment.dotenv",
-        "log.verbose",
+        "log.date",
+        "log.time",
         "meta.at-rule.keyframes.body",
         "punctuation",
         "string.quoted.docstring punctuation.definition",
@@ -825,12 +826,14 @@
         "keyword.operator.type.annotation",
         "keyword.other.parenthesis.elm",
         "keyword.other.substitution",
+        "log.verbose",
         "markup.hr.markdown",
         "markup.ignored punctuation.definition.ignored",
         "markup.ignored",
         "markup.untracked",
+        "meta.brace",
         "meta.brackets entity.name.function.operator",
-        "meta.delimiter.comma.js",
+        "meta.delimiter",
         "meta.function-call.method.without-arguments.js",
         "meta.function-call.without-arguments.js",
         "meta.function.parameters",
@@ -873,8 +876,12 @@
         "entity.name.decorator",
         "entity.name.function.decorator",
         "keyword.other.phpdoc",
+        "meta.decorator entity.name.function",
+        "meta.decorator variable.other.object",
+        "meta.decorator variable.other.readwrite",
         "meta.function.decorator",
-        "meta"
+        "meta",
+        "storage.type.annotation"
       ],
       "settings": { "foreground": "token.annotation" }
     },
@@ -896,7 +903,8 @@
         "punctuation.definition.entity.css",
         "punctuation.definition.keyword.scss",
         "punctuation.definition.variable",
-        "storage.modifier.import.java",
+        "storage.modifier.import",
+        "storage.modifier.package",
         "string.other.git-status.help.key",
         "string.quoted.other.lt-gt.include",
         "support.other.namespace",
@@ -913,6 +921,7 @@
       "scope": [
         "comment.other.git-status.head",
         "entity.name.operator.custom-literal",
+        "meta.jsx.children",
         "meta.object.member",
         "meta.paragraph.markdown",
         "meta.template-tag",
@@ -928,184 +937,220 @@
     },
     {
       "scope": [
+        "entity.name.tag",
+        "keyword.operator.alignof",
+        "keyword.operator.cast",
+        "keyword.operator.delete",
+        "keyword.operator.expression",
+        "keyword.operator.instanceof",
+        "keyword.operator.logical.python",
+        "keyword.operator.new",
+        "keyword.operator.noexcept",
+        "keyword.operator.sizeof",
+        "keyword.operator.typeid",
+        "keyword.operator.word",
         "keyword",
         "log.error",
-        "punctuation.definition.string.template.begin",
-        "punctuation.definition.string.template.end",
-        "punctuation.definition.template-expression.begin",
-        "punctuation.definition.template-expression.end",
-        "punctuation.section.embedded constant.other",
-        "punctuation.section.embedded source",
-        "punctuation.section.embedded",
-        "punctuation.template-string.element.begin",
-        "punctuation.template-string.element.end",
+        "log.exception",
+        "log.exceptiontype",
         "region.redish",
-        "storage.type.function.arrow",
-        "string.quoted.template punctuation.definition.string.begin",
-        "string.quoted.template punctuation.definition.string.end"
+        "storage"
       ],
       "settings": { "foreground": "token.keyword" }
     },
     {
       "scope": [
+        "beginning.punctuation.definition.list.markdown",
+        "constant.character.entity",
+        "constant.character.escape",
+        "constant.character.format.placeholder",
+        "constant.other.placeholder",
         "entity.name.tag.backreference",
         "entity.name.tag.named.group",
-        "entity.other.keyframe-offset.percentage",
-        "keyword.operator.positional.parameter",
-        "log.exception",
-        "log.exceptiontype",
+        "keyword.operator",
         "meta.named",
-        "support.other.match",
-        "support.variable.magic"
+        "punctuation.definition.list.begin.markdown",
+        "punctuation.definition.string.template.begin",
+        "punctuation.definition.string.template.end",
+        "punctuation.definition.template-expression.begin",
+        "punctuation.definition.template-expression.end",
+        "punctuation.section.embedded constant.other",
+        "punctuation.section.embedded entity.name.tag",
+        "punctuation.section.embedded source",
+        "punctuation.section.embedded",
+        "punctuation.separator.pointer-access",
+        "punctuation.template-string.element.begin",
+        "punctuation.template-string.element.end",
+        "storage.type.function.arrow",
+        "string.quoted.template punctuation.definition.string.begin",
+        "string.quoted.template punctuation.definition.string.end",
+        "support.other.escape.special",
+        "support.other.match"
       ],
-      "settings": { "foreground": "token.keyword.special" }
+      "settings": { "foreground": "token.operator" }
     },
     {
       "scope": [
-        "comment.git-status.header.remote",
-        "entity.name.label",
-        "entity.name.lifetime.rust",
-        "keyword.control.rust",
-        "keyword.declaration.class.ruby",
-        "keyword.declaration.function.ruby",
-        "keyword.declaration.namespace.ruby",
-        "keyword.operator.misc.rust",
-        "keyword.operator.rest",
-        "keyword.other.template.begin",
-        "keyword.other.template.end"
-      ],
-      "settings": { "foreground": "token.keyword.secondary" }
-    },
-    {
-      "scope": [
-        "meta.attribute.python",
-        "meta.object-literal.key",
-        "meta.objectliteral",
-        "meta.selector",
-        "parameters variable.function",
-        "region.orangish",
-        "source.ignore",
-        "support.variable.property",
-        "variable.other.jsdoc",
-        "variable.other.object.property",
-        "variable.other.property",
-        "variable.parameter"
-      ],
-      "settings": { "foreground": "token.property" }
-    },
-    {
-      "scope": [
-        "comment.git-status.header.local",
         "constant.other.elm",
-        "entity.name.operator.custom-literal.string",
-        "entity.name.section",
+        "entity.name.label",
         "entity.name.variable",
-        "invalid.deprecated",
-        "log.warning",
-        "markup.heading",
-        "markup.underline.link punctuation",
-        "meta.diff.git-diff.header",
+        "meta.attribute",
+        "meta.fstring",
         "meta.function-call.arguments.python",
-        "region.yellowish",
+        "meta.function",
+        "meta.objectliteral",
+        "meta.property-list",
+        "meta.selector",
+        "source.ignore",
+        "source.jinja2 variable.other.jinja2",
         "source.python",
-        "source.yaml meta.mapping.key string",
-        "storage.class.std.rust",
-        "storage.modifier.const.rust",
-        "storage.modifier.dyn.rust",
-        "storage.modifier.mut.rust",
-        "storage.modifier.static.rust",
-        "storage.type.core.rust",
-        "string.other.link.description.title",
-        "token.warn-token",
         "variable"
       ],
       "settings": { "foreground": "token.variable" }
     },
     {
       "scope": [
-        "constant.character.format.placeholder",
-        "constant.other.placeholder",
-        "constant.other.symbol",
-        "entity.other.attribute-name.id.css",
-        "markup.raw",
-        "meta.attribute-with-value.id string",
-        "meta.attribute.id.html string",
-        "meta.attribute",
-        "meta.property-list.css variable.other",
-        "source.git-show meta.diff.range.unified",
-        "source.jinja2 variable.other.jinja2"
+        "parameters variable.function",
+        "variable.other.jsdoc",
+        "variable.parameter"
       ],
-      "settings": { "foreground": "token.placeholder" }
+      "settings": { "foreground": "token.parameter" }
     },
     {
       "scope": [
+        "comment.git-status.header.local",
         "entity.name.class",
+        "entity.name.lifetime.rust",
+        "entity.name.tag support.class.component",
+        "entity.name.tag.js.jsx support.class.component.js.jsx",
+        "entity.name.type.class.generic",
+        "entity.name.type.class.templated",
         "entity.name.type",
         "entity.other.alias",
+        "entity.other.inherited-class",
+        "invalid.deprecated",
         "keyword.other.type",
-        "region.greenish",
+        "log.warning",
+        "meta.diff.git-diff.header",
+        "meta.diff.header",
+        "region.orangish",
+        "region.yellowish",
+        "source.cs keyword.type",
         "source.vue support.class.component",
+        "storage.class.std.rust",
+        "storage.modifier.lifetime.rust",
+        "storage.type.boolean.go",
+        "storage.type.built-in",
+        "storage.type.byte.go",
+        "storage.type.core.rust",
+        "storage.type.error.go",
+        "storage.type.generic.java",
+        "storage.type.java",
+        "storage.type.numeric.go",
+        "storage.type.object.array.java",
+        "storage.type.primitive",
+        "storage.type.rune.go",
+        "storage.type.string.go",
+        "storage.type.uintptr.go",
         "support.class",
-        "support.type"
+        "support.type",
+        "token.warn-token",
+        "variable.other.alias.yaml"
       ],
       "settings": { "foreground": "token.type" }
     },
     {
       "scope": [
+        "entity.name.function.preprocessor",
         "entity.name",
         "entity.other.animation-name.css",
         "entity.other.attribute-name.class.css",
         "entity.other.attribute-name.css",
+        "entity.other.attribute-name.id.css",
         "entity.other.attribute-name.parent-selector-suffix.css punctuation.definition.entity.css",
         "entity.other.attribute-name.parent-selector-suffix.css",
+        "entity.other.attribute-name.pseudo-class",
+        "entity.other.attribute-name.pseudo-element",
+        "entity.other.pseudo-class",
+        "entity.other.pseudo-element",
+        "markup.heading punctuation.definition.heading",
+        "markup.heading",
+        "meta.at-rule.keyframes.header",
         "meta.attribute-with-value.class string",
+        "meta.attribute-with-value.id string",
         "meta.attribute.class.html string",
+        "meta.attribute.id.html string",
         "meta.definition.function",
         "meta.embedded.assembly",
         "meta.function-call.generic.python",
         "meta.instance.constructor",
+        "region.greenish",
         "source.jinja2 variable.other.jinja2.block",
         "string.other.ref",
         "string.other.restructuredtext.ref",
         "support.function",
-        "variable.function"
+        "variable.function",
+        "variable.parameter.keyframe-list"
       ],
       "settings": { "foreground": "token.function" }
     },
     {
       "scope": [
         "comment variable",
+        "constant.other.symbol.hashkey",
+        "entity.other.attribute-name",
+        "keyword.other.definition.ini",
+        "meta.attribute.python",
+        "meta.object-literal.key",
+        "meta.property-list.css variable.other",
+        "meta.property-name",
         "source.css variable.other",
         "source.css variable.scss",
         "source.less variable.declaration.less",
         "source.less variable.other.less",
         "source.less variable.other",
+        "source.powershell variable.other.member",
+        "source.ruby variable.other.readwrite.class.ruby",
+        "source.ruby variable.other.readwrite.instance.ruby",
         "source.sass variable.other",
         "source.sass variable.sass",
         "source.scss variable.other",
         "source.scss variable.sass",
         "source.scss variable.scss",
-        "support.type.property-name"
+        "source.yaml entity.name.tag",
+        "source.yaml meta.mapping.key string",
+        "support.type.property-name",
+        "support.variable.property",
+        "variable.other.constant.property",
+        "variable.other.key.toml",
+        "variable.other.object.property",
+        "variable.other.property"
       ],
-      "settings": { "foreground": "token.propertyName" }
+      "settings": { "foreground": "token.property" }
     },
     {
       "scope": [
         "comment keyword.codetag.notation",
         "entity.name.constant",
-        "entity.name.operator.custom-literal.number",
         "entity.other.git-status.hex",
         "log.info",
         "markup.inline.raw.string.markdown markup.underline.link.markdown",
+        "markup.quote meta.paragraph",
+        "markup.quote punctuation.definition.quote",
+        "markup.quote",
+        "markup.underline.link punctuation",
         "markup.underline.link",
+        "meta.attribute-selector",
         "meta.preprocessor",
         "meta.tag string.quoted.double.html markup.underline.link.markdown",
         "meta.tag.block.any.html markup.underline.link.markdown",
         "meta.type variable",
+        "property.value.dotenv",
         "region.bluish",
         "source.git-show meta.diff.git-diff.header.extended.index.from-sha",
         "source.git-show meta.diff.git-diff.header.extended.index.to-sha",
         "source.git-show.commit.sha",
+        "source.ini",
         "storage.class.restructuredtext.ref",
         "string",
         "support.constant.core.rust",
@@ -1116,110 +1161,69 @@
     },
     {
       "scope": [
-        "constant.character.entity.named",
-        "log.date",
-        "log.time",
-        "meta.attribute-selector",
-        "property.value.dotenv",
-        "source.ini",
-        "string.unquoted.plain",
-        "support.other.escape.special"
-      ],
-      "settings": { "foreground": "token.string.secondary" }
-    },
-    {
-      "scope": [
-        "constant.character.escape",
-        "entity.name.section.group-title",
-        "entity.name.type.class.generic",
-        "entity.name.type.class.templated",
-        "entity.name.type.namespace.php",
-        "entity.other.attribute-name",
-        "entity.other.inherited-class",
-        "entity.other.pseudo-class",
-        "entity.other.pseudo-element",
-        "meta.at-rule.keyframes.header",
-        "meta.fstring",
-        "meta.function",
-        "meta.namespace.php entity.name.type.namespace.php",
-        "meta.property-value",
-        "meta.tag string.other.link.title.markdown",
-        "storage.modifier.package.java",
-        "storage.type",
-        "string.other.link.description.markdown",
-        "string.other.link.description.title.markdown",
-        "string.other.link.title.markdown",
-        "variable.parameter.keyframe-list"
-      ],
-      "settings": { "foreground": "token.storage" }
-    },
-    {
-      "scope": [
-        "constant.other.set.regexp",
-        "entity.name.tag support.class.component",
-        "entity.name.tag.js.jsx support.class.component.js.jsx",
-        "entity.name.tag",
-        "meta.property-list",
-        "meta.property-name",
-        "punctuation.section.embedded entity.name.tag",
-        "region.purplish",
-        "storage",
-        "string.other.git-status.remote",
-        "string.other.link.description",
-        "string.other.link.title",
-        "string.regexp punctuation.definition.string.begin",
-        "string.regexp punctuation.definition.string.end"
-      ],
-      "settings": { "foreground": "token.tag" }
-    },
-    {
-      "scope": ["constant.numeric", "log.debug", "region.pinkish", "token.debug-token"],
-      "settings": { "foreground": "token.number" }
-    },
-    {
-      "scope": "keyword.other.unit",
-      "settings": { "foreground": "token.number.unit" }
-    },
-    {
-      "scope": [
+        "comment.git-status.header.remote",
+        "constant.numeric keyword.operator",
+        "constant.numeric meta.delimiter",
+        "constant.numeric punctuation.separator",
         "constant",
-        "entity.name.function.preprocessor",
-        "markup.inline.raw.markdown",
+        "entity.other.keyframe-offset.percentage",
+        "log.debug",
         "markup.inline.raw.string.markdown string.other.link.title.markdown",
-        "markup.inline.raw.string.markdown",
+        "markup.inline.raw",
+        "markup.raw",
+        "meta.diff.range",
+        "meta.property-value",
+        "region.pinkish",
+        "region.purplish",
+        "string.other.git-status.remote",
         "support.constant",
-        "variable.other.constant",
+        "token.debug-token",
         "variable.other.enummember"
       ],
       "settings": { "foreground": "token.constant" }
+    },
+    {
+      "scope": [
+        "entity.name.operator.custom-literal.number",
+        "entity.name.operator.custom-literal.string",
+        "keyword.other.unit"
+      ],
+      "settings": { "foreground": "token.constant.unit" }
     },
     {
       "scope": "constant.language",
       "settings": { "foreground": "token.constant.language" }
     },
     {
-      "scope": ["markup.inserted punctuation.definition.inserted", "markup.inserted"],
+      "scope": [
+        "markup.inserted punctuation.definition.inserted",
+        "markup.inserted",
+        "meta.diff.header.to-file"
+      ],
       "settings": { "foreground": "token.diff.added" }
     },
     {
-      "scope": ["markup.changed punctuation.definition.changed", "markup.changed"],
+      "scope": [
+        "markup.changed punctuation.definition.changed",
+        "markup.changed"
+      ],
       "settings": { "foreground": "token.diff.modified" }
     },
     {
-      "scope": ["markup.deleted punctuation.definition.deleted", "markup.deleted"],
+      "scope": [
+        "markup.deleted punctuation.definition.deleted",
+        "markup.deleted",
+        "meta.diff.header.from-file"
+      ],
       "settings": { "foreground": "token.diff.removed" }
     },
     {
       "scope": [
-        "keyword.operator",
-        "punctuation.separator.pointer-access",
-        "source.ruby variable.other.readwrite.class.ruby",
-        "source.ruby variable.other.readwrite.instance.ruby"
+        "strong",
+        "markup.bold",
+        "markup.heading",
+        "keyword.other.important"
       ],
-      "settings": { "foreground": "token.operator" }
-    },
-    {
-      "scope": ["strong", "markup.bold", "keyword.other.important"],
       "settings": { "fontStyle": "bold" }
     },
     {
@@ -1232,18 +1236,33 @@
         "entity.other.inherited-class",
         "entity.other.pseudo-class",
         "entity.other.pseudo-element",
+        "keyword.declaration",
         "keyword.other.type",
         "storage.modifier",
         "storage.type",
         "support.type",
         "variable.language",
+        "variable.parameter",
         "variable.parameter.function.language.special.cls.python",
         "variable.parameter.function.language.special.self.python"
       ],
       "settings": { "fontStyle": "italic" }
     },
     {
-      "scope": ["underline", "markup.underline"],
+      // Labeled `storage.type`, but they're user types and annotations, not declaration keywords.
+      "scope": [
+        "storage.type.annotation",
+        "storage.type.generic.java",
+        "storage.type.java",
+        "storage.type.object.array.java"
+      ],
+      "settings": { "fontStyle": "" }
+    },
+    {
+      "scope": [
+        "underline",
+        "markup.underline"
+      ],
       "settings": { "fontStyle": "underline" }
     },
     {

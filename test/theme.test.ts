@@ -194,7 +194,9 @@ describe('checkDistinctness', () => {
       keyword: { special: color.violet[400] },
       property: color.violet[400],
     });
-    assert.deepEqual(checkDistinctness(tokens, 'dark'), []);
+    const unrelatedPairs = [['token.keyword.special', 'token.property']] as const;
+    assert.deepEqual(checkDistinctness(tokens, 'dark', { unrelatedPairs }), []);
+    assert.equal(checkDistinctness(tokens, 'dark').length, 1);
   });
 
   it('only compares tokens of a separate context with each other', () => {

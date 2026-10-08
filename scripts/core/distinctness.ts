@@ -14,6 +14,17 @@
 import type { BuildIssue, TokenMap, Variant } from '../types/index.ts';
 import { deltaEOk, isNeutralColor, isOpaqueHexColor } from '../utils/color.ts';
 
+// ---------------------------------------- TYPES ----------------------------------------
+
+/** Two syntax token names (e.g., `token.constant`) that are allowed to look alike. */
+type UnrelatedPair = readonly [first: string, second: string];
+
+/** Options of `checkDistinctness`. */
+interface DistinctnessOptions {
+  /** Pairs of tokens that are allowed to look alike (defaults to `UNRELATED_PAIRS`). */
+  readonly unrelatedPairs?: readonly UnrelatedPair[];
+}
+
 // ---------------------------------------- CONSTS ---------------------------------------
 
 /** Minimum perceptual distance (`ΔE_OK`) between two colored syntax tokens. */
@@ -26,17 +37,7 @@ const SYNTAX_GROUP = 'token';
  * Pairs of syntax tokens that are allowed to look alike, since they never show up close to each other (or never sit
  * directly next to each other and are told apart by their glyphs). Every pair needs a reason.
  */
-const UNRELATED_PAIRS: readonly (readonly [first: string, second: string])[] = [
-  // Special keywords are regex group syntax, keyframe offsets, positional parameters (`$1`) and magic variables,
-  // which never sit next to parameters or properties.
-  ['token.keyword.special', 'token.property'],
-  // Secondary strings are values in config files (`.ini`, `.env`, YAML), which have no constants (YAML's `true`,
-  // `null`, … are `token.constant.language`).
-  ['token.constant', 'token.string.secondary'],
-  // Constants and numbers are always separated by an operator or punctuation (e.g., `MAX = 10`), and their glyphs
-  // already tell them apart (uppercase names vs. digits).
-  ['token.constant', 'token.number'],
-];
+const UNRELATED_PAIRS: readonly UnrelatedPair[] = [];
 
 /** Token groups that only show up in their own context, so they're only compared with each other. */
 const SEPARATE_CONTEXTS: readonly string[] = [
@@ -51,11 +52,9 @@ function contextOf(name: string): string {
   return SEPARATE_CONTEXTS.find((prefix) => name.startsWith(prefix)) ?? '';
 }
 
-/** Check if two tokens are listed in `UNRELATED_PAIRS` (in any order). */
-function isUnrelatedPair(first: string, second: string): boolean {
-  return UNRELATED_PAIRS.some(
-    ([a, b]) => (a === first && b === second) || (a === second && b === first)
-  );
+/** Check if two tokens are listed in the unrelated pairs (in any order). */
+function isUnrelatedPair(first: string, second: string, pairs: readonly UnrelatedPair[]): boolean {
+  return pairs.some(([a, b]) => (a === first && b === second) || (a === second && b === first));
 }
 
 // -------------------------------------- PUBLIC API -------------------------------------
@@ -65,10 +64,16 @@ function isUnrelatedPair(first: string, second: string): boolean {
  *
  * @param tokens    The tokens of the theme.
  * @param variant   The variant to check.
+ * @param options   Optional pairs of tokens that may look alike (defaults to `UNRELATED_PAIRS`).
  * @returns One warning per pair of tokens closer than `MIN_DISTANCE` (reported on the later token), except for
- *          `UNRELATED_PAIRS` and tokens of different `SEPARATE_CONTEXTS`.
+ *          unrelated pairs and tokens of different `SEPARATE_CONTEXTS`.
  */
-export function checkDistinctness(tokens: TokenMap, variant: Variant): BuildIssue[] {
+export function checkDistinctness(
+  tokens: TokenMap,
+  variant: Variant,
+  options: DistinctnessOptions = {}
+): BuildIssue[] {
+  const { unrelatedPairs = UNRELATED_PAIRS } = options;
   const colored = [...tokens.values()]
     .filter((token) => token.group === SYNTAX_GROUP)
     .map((token) => ({ hex: token.colors[variant].hex, name: token.name }))
@@ -79,7 +84,8 @@ export function checkDistinctness(tokens: TokenMap, variant: Variant): BuildIssu
     for (const other of colored.slice(0, index)) {
       const distance = deltaEOk(token.hex, other.hex);
       const isComparable =
-        contextOf(token.name) === contextOf(other.name) && !isUnrelatedPair(token.name, other.name);
+        contextOf(token.name) === contextOf(other.name) &&
+        !isUnrelatedPair(token.name, other.name, unrelatedPairs);
       if (distance < MIN_DISTANCE && isComparable) {
         issues.push({
           message: `Hard to tell apart from "${other.name}" (ΔE_OK ${distance.toFixed(3)}, minimum ${MIN_DISTANCE}).`,
