@@ -5,9 +5,10 @@
  * Euclidean distance in OKLab, see `deltaEOk`), once per theme variant. Gray tokens (comments, punctuation, plain
  * text, …) are skipped, since they're told apart by their lightness and the context instead of their hue.
  *
- * Pairs of tokens that never show up close to each other (e.g., regex syntax and function parameters) don't need to
- * be told apart and are listed in `UNRELATED_PAIRS`; Only add pairs there whose scopes really never meet. Tokens of a
- * `SEPARATE_CONTEXTS` group (e.g., the diff lines) are only compared with each other.
+ * Pairs of tokens that never show up close to each other (e.g., regex syntax and function parameters), or that never
+ * sit directly next to each other and are told apart by their glyphs (e.g., constant names and numbers), don't need
+ * to be told apart by color and are listed in `UNRELATED_PAIRS`. Tokens of a `SEPARATE_CONTEXTS` group (e.g., the
+ * diff lines) are only compared with each other.
  */
 
 import type { BuildIssue, TokenMap, Variant } from '../types/index.ts';
@@ -22,8 +23,8 @@ const MIN_DISTANCE = 0.05;
 const SYNTAX_GROUP = 'token';
 
 /**
- * Pairs of syntax tokens that are allowed to look alike, since they never show up close to each other.
- * Every pair needs a reason.
+ * Pairs of syntax tokens that are allowed to look alike, since they never show up close to each other (or never sit
+ * directly next to each other and are told apart by their glyphs). Every pair needs a reason.
  */
 const UNRELATED_PAIRS: readonly (readonly [first: string, second: string])[] = [
   // Special keywords are regex group syntax, keyframe offsets, positional parameters (`$1`) and magic variables,
@@ -32,6 +33,9 @@ const UNRELATED_PAIRS: readonly (readonly [first: string, second: string])[] = [
   // Secondary strings are values in config files (`.ini`, `.env`, YAML), which have no constants (YAML's `true`,
   // `null`, … are `token.constant.language`).
   ['token.constant', 'token.string.secondary'],
+  // Constants and numbers are always separated by an operator or punctuation (e.g., `MAX = 10`), and their glyphs
+  // already tell them apart (uppercase names vs. digits).
+  ['token.constant', 'token.number'],
 ];
 
 /** Token groups that only show up in their own context, so they're only compared with each other. */

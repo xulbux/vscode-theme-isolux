@@ -46,8 +46,22 @@ function bracket(scale: ShadeScale) {
 
 // -------------------------------------- PUBLIC API -------------------------------------
 
-const { amber, coral, cyan, fuchsia, gray, green, indigo, orange, pink, red, rose, teal, violet } =
-  color;
+const {
+  amber,
+  coral,
+  cyan,
+  fuchsia,
+  gray,
+  green,
+  indigo,
+  orange,
+  pink,
+  purple,
+  red,
+  rose,
+  teal,
+  violet,
+} = color;
 
 /** Isolux Pro – Neutral grays with a violet accent and colorful, clearly separated syntax colors. */
 export function isoluxPro() {
@@ -96,7 +110,7 @@ export function isoluxPro() {
     token: {
       annotation: foregroundSecondary,
       comment: foregroundFaint,
-      constant: { DEFAULT: mirror(violet, 300), language: mirror(fuchsia, 200) }, // `language`: `true`, `null`, …
+      constant: { DEFAULT: mirror(purple, 300), language: mirror(fuchsia, 200) }, // `language`: `true`, `null`, …
       diff: { added, removed, modified }, // Inserted / deleted / changed lines in diffs.
       function: mirror(cyan, 200),
       keyword: {
@@ -235,8 +249,8 @@ export function isoluxPro() {
         foreground: onColor({ backgrounds: [error], candidates: onFill }),
         subtle: alpha(error, 0.1),
         soft: alpha(error, 0.15),
+        diagnostic: alpha(error, 0.25), // Behind the squiggle of an error, so it doesn't overpower the code.
         gutter: alpha(error, 0.25),
-        highlight: alpha(error, 0.4),
         retired: alpha(error, 0.5),
       },
       warning: {
@@ -246,6 +260,7 @@ export function isoluxPro() {
         foreground: onColor({ backgrounds: [warning], candidates: onFill }),
         subtle: alpha(warning, 0.1),
         soft: alpha(warning, 0.15),
+        diagnostic: alpha(warning, 0.2), // Lighter than `error`, so less opacity looks just as strong.
         medium: alpha(warning, 0.2),
         highlight: alpha(warning, 0.3),
         retired: alpha(warning, 0.5),
@@ -329,15 +344,13 @@ export function isoluxPro() {
         brightWhite: [gray[50], gray[200]],
       },
       bracket: {
-        match: alpha(overlay, 0.4), // Border around matching brackets (same for every level).
-        // Alternating cool and warm hues instead of a gradient, so neighboring levels (also from `6` back to `1`)
-        // are as different as possible:
-        1: bracket(indigo),
-        2: bracket(amber),
-        3: bracket(fuchsia),
-        4: bracket(cyan),
-        5: bracket(red),
-        6: bracket(green),
+        match: alpha(overlay, 0.4), // Border around matching brackets.
+        1: bracket(gray),
+        2: bracket(gray),
+        3: bracket(gray),
+        4: bracket(gray),
+        5: bracket(gray),
+        6: bracket(gray),
       },
       chart: {
         blue: mirror(indigo, 500),

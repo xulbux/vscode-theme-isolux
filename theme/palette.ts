@@ -31,6 +31,7 @@ export const color = definePalette({
   indigo: '#909FFF',
   orange: '#EF8862',
   pink: '#F56FCA',
+  purple: '#C386FF',
   red: '#FF7680',
   rose: '#FF6EA5',
   teal: '#10C3A0',
