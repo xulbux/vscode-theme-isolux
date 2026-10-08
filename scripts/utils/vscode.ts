@@ -8,7 +8,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { listDirectories, readJson } from './fs.ts';
+import { listDirectories, readJson, readJsonIfExists } from './fs.ts';
 
 // ---------------------------------------- TYPES ----------------------------------------
 
@@ -121,7 +121,6 @@ export function readVsCodeVersion(appRoot: string): string {
  * (e.g., `~/.vscode/extensions`, or `~/.vscode-insiders/extensions` for VS Code Insiders).
  */
 export function getUserExtensionsDir(appRoot: string): string {
-  const productFile = path.join(appRoot, 'product.json');
-  const product = fs.existsSync(productFile) ? (readJson(productFile) as ProductJson) : {};
+  const product = (readJsonIfExists(path.join(appRoot, 'product.json')) ?? {}) as ProductJson;
   return path.join(os.homedir(), product.dataFolderName ?? DEFAULT_DATA_FOLDER_NAME, 'extensions');
 }

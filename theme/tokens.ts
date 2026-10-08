@@ -31,17 +31,13 @@ function mirror(scale: ShadeScale, shade: Shade): readonly [ThemeColor, ThemeCol
 }
 
 /**
- * Get the tokens of a bracket nesting level: the bracket color (`400`), its pair guide (`950`) and its
- * active pair guide (`600`), each mirrored for light (see `mirror`).
+ * Get the tokens of a bracket nesting level: the bracket color (`400`, also used for its active pair guide) and its
+ * pair guide (`950`), each mirrored for light (see `mirror`).
  *
  * @param scale   The shade scale of the color family (e.g., `color.violet`).
  */
 function bracket(scale: ShadeScale) {
-  return {
-    DEFAULT: mirror(scale, 400),
-    guide: mirror(scale, 950),
-    guideActive: mirror(scale, 400),
-  };
+  return { DEFAULT: mirror(scale, 400), guide: mirror(scale, 950) };
 }
 
 // -------------------------------------- PUBLIC API -------------------------------------
@@ -91,6 +87,9 @@ export function isoluxPro() {
   const ai = accent;
   const roleHover = [1.1, 0.9] as const; // Hovered fills get brighter in dark and darker in light.
 
+  // Syntax:
+  const stringLifted = [lightness(indigo[300], 1.06), indigo[800]] as const; // Lifted a step out of strings.
+
   return defineTheme({
     // Syntax: Every color has one meaning (keywords, operators, strings, functions, keys, types, values); Variables and
     // parameters stay neutral, so they anchor the colors, and italic marks sub-roles (declarations, modifiers, built-in
@@ -114,8 +113,8 @@ export function isoluxPro() {
       punctuation: foregroundMuted,
       string: {
         DEFAULT: [indigo[400], indigo[700]], // Strings including their quotes.
-        escape: [lightness(indigo[300], 1.06), indigo[800]], // Escapes and entities (`\n`, `&amp;`), lifted out of the string.
-        label: [lightness(indigo[300], 1.06), indigo[800]], // Markdown link texts, image alts and titles, lifted above their (string) URL.
+        escape: stringLifted, // Escapes and entities (`\n`, `&amp;`), lifted out of the string.
+        label: stringLifted, // Markdown link texts, image alts and titles, lifted above their (string) URL.
       },
       text: [gray[50], gray[900]],
       type: [green[200], green[700]],
@@ -327,9 +326,7 @@ export function isoluxPro() {
         brightCyan: mirror(cyan, 100),
         brightWhite: [gray[50], gray[200]],
       },
-      // The rarest syntax colors (units, escapes, language constants), so brackets fit the syntax but seldom touch their
-      // own color, plus types to tell the two close pale ones (escapes, language constants) apart; VS Code repeats them
-      // for deeper levels:
+      // One hue per nesting level; VS Code repeats them for deeper levels:
       bracket: {
         match: alpha(overlay, 0.4), // Border around matching brackets.
         1: bracket(violet),

@@ -4,29 +4,9 @@
 
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { definePalette } from '../scripts/core/palette.ts';
 import { alpha, flattenTokens, lightness, onColor } from '../scripts/core/tokens.ts';
 import type { BuildIssue } from '../scripts/types/index.ts';
-
-// ---------------------------------------- CONSTS ---------------------------------------
-
-/** A small palette to derive the test tokens from. */
-const color = definePalette({
-  gray: {
-    100: '#E2E2E2',
-    200: '#BDBDBD',
-    300: '#8A8A8A',
-    400: '#646464',
-    50: '#FAFAFA',
-    500: '#3D3D3D',
-    600: '#2C2C2C',
-    700: '#242424',
-    800: '#181818',
-    900: '#101010',
-    950: '#000000',
-  },
-  violet: '#AA94FF',
-});
+import { color } from './fixtures.ts';
 
 // ----------------------------------------- MAIN ----------------------------------------
 

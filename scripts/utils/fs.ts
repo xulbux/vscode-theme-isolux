@@ -12,6 +12,11 @@ export function readJson(file: string): unknown {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
+/** Read and parse a JSON file, or get `undefined` if it doesn't exist. */
+export function readJsonIfExists(file: string): unknown {
+  return fs.existsSync(file) ? readJson(file) : undefined;
+}
+
 /**
  * List the subdirectories of a directory.
  * @returns Their full paths, or an empty list if `dir` doesn't exist.

@@ -21,7 +21,7 @@ import type {
   TokenMap,
   Variant,
 } from '../types/index.ts';
-import { normalizeHex } from '../utils/color.ts';
+import { isHexNotation } from '../utils/color.ts';
 import { isPlainObject } from '../utils/object.ts';
 import { didYouMean } from '../utils/strings.ts';
 import { colorKeyPath, forEachTokenColor } from '../utils/theme.ts';
@@ -102,7 +102,7 @@ function resolveReference(
     context.issues.push({ message: `Expected a token name, got ${JSON.stringify(value)}.`, path });
     return;
   }
-  if (normalizeHex(value) !== undefined) {
+  if (isHexNotation(value)) {
     context.issues.push({
       message: `Raw hex color "${value}" is not allowed – define a token in "theme/tokens.ts" and reference it by name.`,
       path,

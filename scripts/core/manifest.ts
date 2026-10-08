@@ -6,9 +6,9 @@
  * `uiTheme`), using the theme's `label` as its name. `author` and `maintainers` are copied into every theme.
  */
 
-import fs from 'node:fs';
 import path from 'node:path';
 import type { ManifestInfo, ThemeTarget, Variant } from '../types/index.ts';
+import { readJson } from '../utils/fs.ts';
 import { logError } from '../utils/logger.ts';
 import { VARIANTS } from './tokens.ts';
 
@@ -140,9 +140,7 @@ function readThemeTargets(manifest: Manifest, rootDir: string, distDir: string):
  * @throws {Error} If `package.json` can't be read or parsed.
  */
 export function readManifest(rootDir: string, distDir: string): ManifestInfo {
-  const manifest = JSON.parse(
-    fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8')
-  ) as Manifest;
+  const manifest = readJson(path.join(rootDir, 'package.json')) as Manifest;
   return {
     author: formatPerson(manifest.author),
     maintainers: (manifest.maintainers ?? [])

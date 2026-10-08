@@ -23,7 +23,7 @@
  */
 
 import tailwindColors from 'tailwindcss/colors';
-import type { Gamut, Oklch } from '../types/index.ts';
+import type { Gamut, Oklch, Shade } from '../types/index.ts';
 import { hexToOklch, maxChroma, oklchToHex, parseOklch } from '../utils/color.ts';
 
 // ---------------------------------------- TYPES ----------------------------------------
@@ -50,7 +50,7 @@ interface FamilyProfile {
 // ---------------------------------------- CONSTS ---------------------------------------
 
 /** The shade that is set to the base color itself. */
-const BASE_SHADE = 400;
+const BASE_SHADE: Shade = 400;
 
 /** Tailwind's chromatic color families, used as the reference (the neutral gray scales are left out). */
 const TAILWIND_FAMILIES = [
@@ -80,7 +80,7 @@ const TAILWIND_GAMUT: Gamut = 'p3';
  * OKLCH lightness of every shade, shared by all generated color families.
  * Close to the average lightness of Tailwind's chromatic scales.
  */
-export const TARGET_LIGHTNESS: ReadonlyMap<number, number> = new Map([
+export const TARGET_LIGHTNESS: ReadonlyMap<Shade, number> = new Map([
   [50, 0.97],
   [100, 0.93],
   [200, 0.88],
@@ -106,7 +106,7 @@ const BASE_LIGHTNESS_TOLERANCE = 0.002;
  * Get the `TARGET_LIGHTNESS` of a shade.
  * @throws {Error} If the shade isn't one of the Tailwind steps.
  */
-function targetLightness(shade: number): number {
+function targetLightness(shade: Shade): number {
   const lightness = TARGET_LIGHTNESS.get(shade);
   if (lightness === undefined) {
     throw new Error(`Unknown shade "${shade}".`);
@@ -230,10 +230,10 @@ export function validateBaseColor(hex: string): string | undefined {
  * Generate all shades from a base color (see the module docs). Validate the base with `validateBaseColor` first.
  * @returns `#RRGGBB` hex colors by shade, from `50` to `950`.
  */
-export function generateShades(baseHex: string): Map<number, string> {
+export function generateShades(baseHex: string): Map<Shade, string> {
   const base = hexToOklch(baseHex);
   const saturation = relativeSaturation(base.l, base.c, base.h);
-  const shades = new Map<number, string>();
+  const shades = new Map<Shade, string>();
 
   for (const [shade, l] of TARGET_LIGHTNESS) {
     if (shade === BASE_SHADE) {

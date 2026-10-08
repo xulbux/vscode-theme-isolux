@@ -76,17 +76,12 @@ function statePairs(
   min: number,
   over?: string
 ): ContrastPair[] {
-  return states.map((state) => {
-    const pair: ContrastPair = {
-      background: stateKey(component, state, STATE_SUFFIXES.background),
-      foreground: stateKey(component, state, STATE_SUFFIXES.foreground),
-      min,
-    };
-    if (over !== undefined) {
-      pair.over = over;
-    }
-    return pair;
-  });
+  return states.map((state) => ({
+    background: stateKey(component, state, STATE_SUFFIXES.background),
+    foreground: stateKey(component, state, STATE_SUFFIXES.foreground),
+    min,
+    over,
+  }));
 }
 
 /**

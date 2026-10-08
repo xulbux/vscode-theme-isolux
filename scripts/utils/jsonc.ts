@@ -28,7 +28,7 @@ interface Container {
 
 // ------------------------------------ REGEX PATTERNS -----------------------------------
 
-/** Matches a key that can be written as a dotted path segment (e.g., `palette.gray`). */
+/** Matches a key that can be written as a dotted path segment (e.g., `semanticTokenColors.variable`). */
 const IDENTIFIER_RX = /^[A-Za-z_$][\w$]*$/;
 
 // -------------------------------------- INTERNALS --------------------------------------

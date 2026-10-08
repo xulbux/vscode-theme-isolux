@@ -63,7 +63,7 @@ export const TOKEN_NAME_SEPARATOR = '.';
  * Allowed opacity steps (in %), mapped to their hex alpha byte.
  * Restricting the steps keeps transparency levels consistent across the whole theme.
  */
-export const OPACITY_STEPS: ReadonlyMap<number, string> = new Map([
+const OPACITY_STEPS: ReadonlyMap<number, string> = new Map([
   [5, '0D'],
   [10, '1A'],
   [15, '26'],

@@ -17,7 +17,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { VsCodeColorIds } from '../types/index.ts';
-import { listDirectories, readJson } from '../utils/fs.ts';
+import { listDirectories, readJson, readJsonIfExists } from '../utils/fs.ts';
 import { escapeRegExp, findStringEnd } from '../utils/strings.ts';
 import {
   findAppRoot,
@@ -245,8 +245,7 @@ function findRegisterColor(bundle: string): string {
  */
 function extractCoreColors(appRoot: string): DescriptionMap {
   const bundle = fs.readFileSync(path.join(appRoot, WORKBENCH_BUNDLE), 'utf8');
-  const messagesFile = path.join(appRoot, NLS_MESSAGES);
-  const messages = fs.existsSync(messagesFile) ? (readJson(messagesFile) as string[]) : [];
+  const messages = (readJsonIfExists(path.join(appRoot, NLS_MESSAGES)) ?? []) as string[];
   const registerColor = findRegisterColor(bundle);
   const colors: DescriptionMap = new Map();
 
@@ -352,16 +351,17 @@ function extractExtensionColors(extensionsDir: string): ExtensionColors {
   const extensions = new Set<string>();
 
   for (const dir of listNewestExtensions(extensionsDir)) {
-    const manifestFile = path.join(dir, 'package.json');
-    const nlsFile = path.join(dir, 'package.nls.json');
-    const manifest = fs.existsSync(manifestFile)
-      ? (readJson(manifestFile) as ExtensionManifest)
-      : undefined;
+    const manifest = readJsonIfExists(path.join(dir, 'package.json')) as
+      | ExtensionManifest
+      | undefined;
     const contributed = (manifest?.contributes?.colors ?? []).filter(
       (color): color is ValidColorContribution => typeof color.id === 'string'
     );
     if (manifest !== undefined && contributed.length > 0) {
-      const nls = fs.existsSync(nlsFile) ? (readJson(nlsFile) as Record<string, unknown>) : {};
+      const nls = (readJsonIfExists(path.join(dir, 'package.nls.json')) ?? {}) as Record<
+        string,
+        unknown
+      >;
       extensions.add(
         manifest.publisher ? `${manifest.publisher}.${manifest.name}` : String(manifest.name)
       );
@@ -441,11 +441,8 @@ function extractColorIds(appRoot: string): VsCodeColorIds {
  * @param cacheFile   JSON file to cache the result in (it's only read again if nothing it depends on changed).
  * @throws {Error} If no VS Code installation is found or its workbench bundle format isn't recognized.
  */
-export function readVsCodeColorIds(cacheFile?: string): VsCodeColorIds {
+export function readVsCodeColorIds(cacheFile: string): VsCodeColorIds {
   const appRoot = findAppRoot();
-  if (cacheFile === undefined) {
-    return extractColorIds(appRoot);
-  }
   const key = getCacheKey(appRoot);
   const cached = readCache(cacheFile, key);
   if (cached !== undefined) {

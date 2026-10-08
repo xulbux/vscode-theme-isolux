@@ -27,7 +27,7 @@ import { generateShades, TARGET_LIGHTNESS, validateBaseColor } from './shades.ts
  * Allowed shade steps (the Tailwind steps).
  * Restricting the shades keeps the palette small and prevents near-duplicate in-between colors.
  */
-const SHADES: readonly Shade[] = [...TARGET_LIGHTNESS.keys()] as Shade[];
+const SHADES: readonly Shade[] = [...TARGET_LIGHTNESS.keys()];
 
 /** Every `ThemeColor` created by `createThemeColor` (to tell them apart from hand-written objects). */
 const THEME_COLORS = new WeakSet<object>();
@@ -70,7 +70,7 @@ function buildScale(family: string, value: unknown, problems: string[]): ShadeSc
       problems.push(`"${family}": ${baseError}`);
       return undefined;
     }
-    return toScale(family, generateShades(value) as Map<Shade, string>);
+    return toScale(family, generateShades(value));
   }
 
   if (!isPlainObject(value)) {

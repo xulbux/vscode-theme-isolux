@@ -24,9 +24,10 @@
  *
  * The known color keys are read from the locally installed VS Code on every build (see `core/colorIds.ts`), so unknown
  * keys are flagged (in the schema and as build warnings) for exactly that VS Code version. Without an installation,
- * any key is accepted. Every theme is also checked for low-contrast color pairs (see `core/contrast.ts`) and unused
- * tokens. Warnings don't prevent a theme from being written, but in strict mode (`--strict`, enabled automatically
- * if the `CI` environment variable is set) they're reported as errors and fail the build.
+ * any key is accepted. Every theme is also checked for low-contrast color pairs (see `core/contrast.ts`), syntax colors
+ * that are hard to tell apart (see `core/distinctness.ts`) and unused tokens. Warnings don't prevent a theme from being
+ * written, but in strict mode (`--strict`, enabled automatically if the `CI` environment variable is set) they're
+ * reported as errors and fail the build.
  */
 
 import fs from 'node:fs';

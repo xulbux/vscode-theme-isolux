@@ -185,16 +185,9 @@ export function isOpaqueHexColor(value: unknown): value is string {
   return typeof value === 'string' && OPAQUE_HEX_RX.test(value);
 }
 
-/**
- * Normalize any hex color notation (`#RGB`, `#RGBA`, `#RRGGBB` or `#RRGGBBAA`) to uppercase `#RRGGBB` / `#RRGGBBAA`.
- * @returns The normalized color, or `undefined` if `value` isn't a hex color.
- */
-export function normalizeHex(value: string): string | undefined {
-  if (SHORT_HEX_RX.test(value)) {
-    // Every digit is doubled (e.g., `#ABC` → `#AABBCC`).
-    return value.replaceAll(/[^#]/g, '$&$&').toUpperCase();
-  }
-  return isHexColor(value) ? value.toUpperCase() : undefined;
+/** Check if a string is a hex color in any notation (`#RGB`, `#RGBA`, `#RRGGBB` or `#RRGGBBAA`). */
+export function isHexNotation(value: string): boolean {
+  return SHORT_HEX_RX.test(value) || HEX_RX.test(value);
 }
 
 /**

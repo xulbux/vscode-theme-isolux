@@ -11,10 +11,10 @@ import {
   deltaEOk,
   hexToOklch,
   isHexColor,
+  isHexNotation,
   isNeutralColor,
   isOpaqueHexColor,
   maxChroma,
-  normalizeHex,
   oklchToHex,
   parseOklch,
   scaleLightness,
@@ -46,11 +46,12 @@ describe('hex parsing', () => {
     assert.ok(!isOpaqueHexColor('#AABBCC80'));
   });
 
-  it('normalizes every hex notation to uppercase long form', () => {
-    assert.equal(normalizeHex('#abc'), '#AABBCC');
-    assert.equal(normalizeHex('#abcd'), '#AABBCCDD');
-    assert.equal(normalizeHex('#a1b2c3'), '#A1B2C3');
-    assert.equal(normalizeHex('ui.accent'), undefined);
+  it('recognizes every hex notation', () => {
+    for (const hex of ['#abc', '#abcd', '#a1b2c3', '#A1B2C380']) {
+      assert.ok(isHexNotation(hex), hex);
+    }
+    assert.ok(!isHexNotation('ui.accent'));
+    assert.ok(!isHexNotation('#abcde'));
   });
 });
 

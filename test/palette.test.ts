@@ -7,26 +7,7 @@ import { describe, it } from 'node:test';
 import { definePalette, isThemeColor } from '../scripts/core/palette.ts';
 import { generateShades, TARGET_LIGHTNESS, validateBaseColor } from '../scripts/core/shades.ts';
 import { hexToOklch } from '../scripts/utils/color.ts';
-
-// ---------------------------------------- CONSTS ---------------------------------------
-
-/** A valid base color (OKLCH lightness `TARGET_LIGHTNESS[400]`). */
-const VALID_BASE = '#AA94FF';
-
-/** A manual gray scale (every shade defined). */
-const GRAY_SCALE = {
-  100: '#E2E2E2',
-  200: '#BDBDBD',
-  300: '#8A8A8A',
-  400: '#646464',
-  50: '#FAFAFA',
-  500: '#3D3D3D',
-  600: '#2C2C2C',
-  700: '#242424',
-  800: '#181818',
-  900: '#101010',
-  950: '#000000',
-} as const;
+import { GRAY_SCALE, VALID_BASE } from './fixtures.ts';
 
 // ----------------------------------------- MAIN ----------------------------------------
 

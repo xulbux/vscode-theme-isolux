@@ -7,30 +7,12 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { checkContrast } from '../scripts/core/contrast.ts';
 import { checkDistinctness } from '../scripts/core/distinctness.ts';
-import { definePalette } from '../scripts/core/palette.ts';
 import { compileTheme } from '../scripts/core/theme.ts';
 import { alpha, flattenTokens, lightness } from '../scripts/core/tokens.ts';
 import type { CompileOptions, TokenMap } from '../scripts/types/index.ts';
+import { color } from './fixtures.ts';
 
 // ---------------------------------------- CONSTS ---------------------------------------
-
-/** A small palette to derive the test tokens from. */
-const color = definePalette({
-  gray: {
-    100: '#E2E2E2',
-    200: '#BDBDBD',
-    300: '#8A8A8A',
-    400: '#646464',
-    50: '#FAFAFA',
-    500: '#3D3D3D',
-    600: '#2C2C2C',
-    700: '#242424',
-    800: '#181818',
-    900: '#101010',
-    950: '#000000',
-  },
-  violet: '#AA94FF',
-});
 
 /** The test tokens. */
 const TOKENS = flattenTokens(
