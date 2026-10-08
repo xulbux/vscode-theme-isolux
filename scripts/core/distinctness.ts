@@ -37,7 +37,10 @@ const SYNTAX_GROUP = 'token';
  * Pairs of syntax tokens that are allowed to look alike, since they never show up close to each other (or never sit
  * directly next to each other and are told apart by their glyphs). Every pair needs a reason.
  */
-const UNRELATED_PAIRS: readonly UnrelatedPair[] = [];
+const UNRELATED_PAIRS: readonly UnrelatedPair[] = [
+  // Escapes sit inside code strings, labels are Markdown link texts; Markdown escapes are told apart by their backslash.
+  ['token.string.escape', 'token.string.label'],
+];
 
 /** Token groups that only show up in their own context, so they're only compared with each other. */
 const SEPARATE_CONTEXTS: readonly string[] = [

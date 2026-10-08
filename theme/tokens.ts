@@ -40,7 +40,7 @@ function bracket(scale: ShadeScale) {
   return {
     DEFAULT: mirror(scale, 400),
     guide: mirror(scale, 950),
-    guideActive: mirror(scale, 600),
+    guideActive: mirror(scale, 400),
   };
 }
 
@@ -48,7 +48,7 @@ function bracket(scale: ShadeScale) {
 
 const { amber, cyan, fuchsia, gray, green, indigo, orange, purple, red, violet } = color;
 
-/** Isolux Pro – Neutral grays with a violet accent and colorful, clearly separated syntax colors. */
+/** Isolux Pro – Neutral grays with a violet accent and a few clearly separated syntax colors, each with one meaning. */
 export function isoluxPro() {
   // Neutrals (the gray scale isn't evenly spaced, so the light grays are picked instead of mirrored):
   const white = lightness(gray[50], 1.02);
@@ -85,7 +85,7 @@ export function isoluxPro() {
   // than indigo at the same shade (`300` has about the chroma of `indigo[400]`):
   const modified = mirror(fuchsia, 300);
   const removed = error;
-  const match = mirror(green, 200);
+  const match = mirror(green, 300);
   const conflict = [amber[400], lightness(amber[600], 0.93)] as const;
   const offline = [orange[400], orange[700]] as const;
   const ai = accent;
@@ -100,20 +100,25 @@ export function isoluxPro() {
       comment: foregroundFaint,
       constant: {
         DEFAULT: mirror(purple, 300), // Numbers, enum members, CSS values, inline code, …
-        language: mirror(indigo, 200), // `true`, `null`, …
-        unit: mirror(purple, 400), // `px`, `ms`, `u8`, …
+        language: mirror(purple, 200), // `true`, `null`, …
+        unit: mirror(violet, 400), // `px`, `ms`, `u8`, …
       },
       diff: { added, removed, modified }, // Inserted / deleted / changed lines in diffs.
-      function: mirror(cyan, 200),
+      function: [cyan[200], cyan[700]],
       keyword: mirror(red, 400),
-      namespace: [gray[100], gray[600]],
-      operator: mirror(red, 300), // Operators and symbolic markers (`=`, `&&`, `=>`, `${`, escapes, regex syntax, …).
+      // Namespaces and built-in identifiers (`this`, `self`, `__name__`, `$_`, sigils): A step dimmer than variables.
+      namespace: [lightness(gray[100], 0.92), lightness(gray[600], 1.2)],
+      operator: mirror(red, 300), // Operators and symbolic markers (`=`, `&&`, `=>`, `${`, `f`/`r` string prefixes, regex syntax, …).
       parameter: foreground, // Neutral like variables; Told apart by italic.
       property: [lightness(cyan[100], 1.03), cyan[900]], // Properties, fields and keys (objects, JSON, CSS, attributes).
       punctuation: foregroundMuted,
-      string: [indigo[400], indigo[700]],
+      string: {
+        DEFAULT: [indigo[400], indigo[700]], // Strings including their quotes.
+        escape: [lightness(indigo[300], 1.06), indigo[800]], // Escapes and entities (`\n`, `&amp;`), lifted out of the string.
+        label: [lightness(indigo[300], 1.06), indigo[800]], // Markdown link texts, image alts and titles, lifted above their (string) URL.
+      },
       text: [gray[50], gray[900]],
-      type: mirror(orange, 300),
+      type: [green[200], green[700]],
       variable: foreground,
     },
 
@@ -230,7 +235,6 @@ export function isoluxPro() {
         foreground: onColor({ backgrounds: [error], candidates: onFill }),
         subtle: alpha(error, 0.1),
         soft: alpha(error, 0.15),
-        diagnostic: alpha(error, 0.25), // Behind the squiggle of an error, so it doesn't overpower the code.
         gutter: alpha(error, 0.25),
         retired: alpha(error, 0.5),
       },
@@ -241,7 +245,6 @@ export function isoluxPro() {
         foreground: onColor({ backgrounds: [warning], candidates: onFill }),
         subtle: alpha(warning, 0.1),
         soft: alpha(warning, 0.15),
-        diagnostic: alpha(warning, 0.2), // Lighter than `error`, so less opacity looks just as strong.
         medium: alpha(warning, 0.2),
         highlight: alpha(warning, 0.3),
         retired: alpha(warning, 0.5),
@@ -324,18 +327,21 @@ export function isoluxPro() {
         brightCyan: mirror(cyan, 100),
         brightWhite: [gray[50], gray[200]],
       },
+      // The rarest syntax colors (units, escapes, language constants), so brackets fit the syntax but seldom touch their
+      // own color, plus types to tell the two close pale ones (escapes, language constants) apart; VS Code repeats them
+      // for deeper levels:
       bracket: {
         match: alpha(overlay, 0.4), // Border around matching brackets.
-        1: bracket(gray),
-        2: bracket(gray),
-        3: bracket(gray),
-        4: bracket(gray),
-        5: bracket(gray),
-        6: bracket(gray),
+        1: bracket(violet),
+        2: bracket(fuchsia),
+        3: bracket(indigo),
+        4: bracket(red),
+        5: bracket(green),
+        6: bracket(cyan),
       },
       chart: {
         blue: mirror(indigo, 500),
-        green: mirror(indigo, 300),
+        green: mirror(cyan, 300),
         orange: mirror(orange, 400),
         purple: mirror(violet, 400),
         red: mirror(red, 400),
