@@ -11,7 +11,7 @@
  * - Translucent colors: named after their purpose, not their opacity.
  */
 
-import { alpha, defineTheme, lightness, onColor } from '../scripts/api.ts';
+import { alpha, defineTheme, lightness, onColor, saturate } from '../scripts/api.ts';
 import type { Shade, ShadeScale, ThemeColor } from '../scripts/types/index.ts';
 import { color } from './palette.ts';
 
@@ -49,8 +49,8 @@ export function isoluxPro() {
   const background = [gray[950], white] as const;
   const overlay = [gray[50], gray[950]] as const; // Basis of the translucent highlights.
   const shadow = gray[950];
-  const hover = [gray[700], lightness(gray[100], 1.04)] as const;
-  const active = [lightness(gray[600], 1.1), gray[100]] as const;
+  const hover = alpha(overlay, 0.05);
+  const active = alpha(overlay, 0.1);
   const foreground = [gray[100], gray[700]] as const;
   const foregroundSecondary = [gray[200], gray[500]] as const;
   const foregroundMuted = [gray[300], gray[400]] as const;
@@ -61,14 +61,15 @@ export function isoluxPro() {
   const onFill = [gray[950], gray[50]]; // Candidates for text on colored fills (see `onColor`).
 
   // Buttons:
-  const button = [lightness(gray[100], 0.96), gray[800]] as const;
-  const buttonHover = [lightness(gray[100], 0.92), lightness(gray[800], 1.3)] as const;
+  const button = [lightness(gray[100], 0.96), gray[700]] as const;
+  const buttonHover = [lightness(gray[100], 0.92), lightness(gray[700], 1.3)] as const;
   const buttonNeutral = [gray[700], gray[100]] as const;
   const buttonNeutralHover = [lightness(gray[700], 0.78), lightness(gray[100], 0.97)] as const;
 
   // Roles (one shade darker than mirrored in light, so role text on its own tint stays readable).
   // Info is neutral, so only problems and changes stand out in color:
-  const accent = [violet[400], violet[700]] as const;
+  const accentScale = violet;
+  const accent = [accentScale[400], accentScale[700]] as const;
   const accentMuted = alpha(accent, 0.6);
   const error = [red[400], red[700]] as const;
   const warning = mirror(amber, 300);
@@ -79,7 +80,7 @@ export function isoluxPro() {
   // than indigo at the same shade (`300` has about the chroma of `indigo[400]`):
   const modified = mirror(fuchsia, 300);
   const removed = error;
-  const match = mirror(green, 300);
+  const match = [accentScale[500], accentScale[700]] as const;
   const conflict = [amber[400], lightness(amber[600], 0.93)] as const;
   const offline = [orange[400], orange[700]] as const;
   const ai = accent;
@@ -134,14 +135,14 @@ export function isoluxPro() {
         bubbleHover: [lightness(gray[700], 0.84), gray[100]],
         code: alpha(overlay, [0.1, 0.05]),
         hover,
-        hoverSubtle: [lightness(gray[700], 0.5), lightness(gray[50], 0.985)],
+        hoverSubtle: alpha(overlay, 0.05),
         active,
-        activeSubtle: [lightness(active[0], 0.5), lightness(gray[50], 0.96)],
-        selected: [gray[500], lightness(gray[100], 0.95)],
+        activeSubtle: alpha(overlay, 0.05),
+        selected: alpha(overlay, 0.15),
       },
       foreground: {
         DEFAULT: foreground,
-        strong: [gray[50], gray[950]],
+        strong: overlay,
         secondary: foregroundSecondary,
         muted: foregroundMuted,
         faint: foregroundFaint,
@@ -169,7 +170,10 @@ export function isoluxPro() {
       ruler: { border: alpha([gray[600], gray[200]], 0.6), cursor: alpha(foregroundMuted, 0.8) },
       shadow: alpha(shadow, [0.4, 0.15]),
       opacity: { unnecessary: alpha(shadow, 0.6), minimap: alpha(shadow, 0.8) },
-      badge: { DEFAULT: [gray[500], gray[100]], foreground: [gray[100], gray[600]] },
+      badge: {
+        DEFAULT: lightness([saturate(accentScale[700], 0.75), accentScale[300]], 1.02),
+        foreground: overlay,
+      },
       button: {
         DEFAULT: button,
         hover: buttonHover,
@@ -213,16 +217,10 @@ export function isoluxPro() {
         DEFAULT: accent,
         hover: lightness(accent, roleHover),
         strong: lightness(accent, roleHover), // Accent text on selected items.
-        foreground: onColor({ backgrounds: [accent], candidates: onFill }),
         subtle: alpha(accent, 0.1),
         soft: alpha(accent, 0.15),
         drop: alpha(accent, 0.3),
         muted: accentMuted,
-        mutedForeground: onColor({
-          backgrounds: [accentMuted],
-          candidates: onFill,
-          over: background,
-        }),
         dimmed: alpha(accent, 0.8),
       },
       error: {
@@ -285,10 +283,9 @@ export function isoluxPro() {
       },
       match: {
         DEFAULT: match,
-        current: alpha(match, 0.3),
-        currentTerminal: alpha(match, 0.5),
-        highlight: alpha(match, 0.15),
-        range: alpha(match, 0.1),
+        current: alpha(match, [0.5, 0.15]),
+        highlight: alpha(match, [0.4, 0.1]),
+        range: alpha(match, [0.2, 0.05]),
       },
       conflict: {
         DEFAULT: conflict,
@@ -360,7 +357,7 @@ export function isoluxPro() {
         baseRef: mirror(orange, 400),
       },
       extension: { private: alpha(overlay, 0.4), sponsor: mirror(fuchsia, 400) },
-      lightBulb: mirror(orange, 400),
+      lightBulb: accent,
       renamed: [orange[300], orange[800]],
       running: mirror(orange, 400),
       submodule: mirror(cyan, 200),

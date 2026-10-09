@@ -20,7 +20,13 @@ import type {
   Variant,
   VariantValue,
 } from '../types/index.ts';
-import { composite, contrastRatio, isOpaqueHexColor, scaleLightness } from '../utils/color.ts';
+import {
+  composite,
+  contrastRatio,
+  isOpaqueHexColor,
+  scaleLightness,
+  scaleChroma,
+} from '../utils/color.ts';
 import { isPlainObject } from '../utils/object.ts';
 import { createThemeColor, isThemeColor } from './palette.ts';
 
@@ -160,6 +166,20 @@ function applyLightness(color: ThemeColor, factor: number): ThemeColor {
   );
 }
 
+function applySaturate(color: ThemeColor, factor: number): ThemeColor {
+  assertOpaque(color, 'saturate');
+  if (factor === 1) {
+    throw new RangeError('saturate(): A factor of 1 has no effect - remove it.');
+  }
+  if (factor < 0) {
+    throw new RangeError('saturate(): Factor cannot be negative.');
+  }
+  return createThemeColor(
+    `${color.name}*s${Math.round(factor * 100)}`,
+    scaleChroma(color.hex, factor)
+  );
+}
+
 /**
  * Pick the candidate with the best contrast against every background (the highest lowest contrast ratio).
  *
@@ -290,6 +310,27 @@ export function alpha(
  * @param color    The opaque color (or a `[dark, light]` pair).
  * @param factor   The lightness factor, `MIN_LIGHTNESS` – `MAX_LIGHTNESS` (or a `[dark, light]` pair).
  */
+
+/**
+ * Scale the chroma (saturation) of a color.
+ *
+ * @param color    The color to adjust.
+ * @param factor   The multiplier (e.g., \`0.5\` for half saturation, \`2.0\` for double).
+ */
+export function saturate(color: ThemeColor, factor: number): ThemeColor;
+export function saturate(
+  color: VariantValue<ThemeColor>,
+  factor: VariantValue<number>
+): VariantValue<ThemeColor>;
+export function saturate(
+  color: VariantValue<ThemeColor>,
+  factor: VariantValue<number>
+): VariantValue<ThemeColor> {
+  return derive([color, factor], (variant) =>
+    applySaturate(pick(color, variant), pick(factor, variant))
+  );
+}
+
 export function lightness(color: ThemeColor, factor: number): ThemeColor;
 export function lightness(
   color: VariantValue<ThemeColor>,

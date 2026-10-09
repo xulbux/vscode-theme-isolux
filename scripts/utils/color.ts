@@ -256,6 +256,11 @@ export function oklchToHex(color: Oklch): string {
  * @param hex      The `#RRGGBB` color.
  * @param factor   Lightness multiplier (e.g., `0.9` for a 10 % darker color).
  */
+export function scaleChroma(hex: string, factor: number): string {
+  const color = hexToOklch(hex);
+  return oklchToHex({ ...color, c: color.c * factor });
+}
+
 export function scaleLightness(hex: string, factor: number): string {
   const color = hexToOklch(hex);
   const lr = Math.min(1, Math.max(0, toe(color.l) * factor));

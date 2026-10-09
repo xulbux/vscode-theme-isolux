@@ -6,4 +6,4 @@
  */
 
 export { definePalette } from './core/palette.ts';
-export { alpha, defineTheme, lightness, onColor } from './core/tokens.ts';
+export { alpha, defineTheme, lightness, onColor, saturate } from './core/tokens.ts';
