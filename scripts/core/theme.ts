@@ -1,16 +1,11 @@
 /**
- * Theme compiler – Turns the shared theme source (`theme/theme.jsonc`, which references tokens by name)
- * into a plain VS Code color theme (with hex colors only) for one theme variant.
+ * Theme compiler – Turns the shared theme source (`theme/theme.jsonc`) into a VS Code color theme
+ * for one variant, replacing token references with hex colors.
  *
- * Token references are resolved in:
- * - `colors.*`
- * - `tokenColors[].settings.foreground` / `.background`
- * - `semanticTokenColors.*` (string values, or `.foreground` of style objects; VS Code doesn't support a background there)
- *
- * Every value must be a token name (e.g., `ui.foreground.muted`) or `transparent`; Raw hex colors and color
- * adjustments aren't allowed (they belong into `theme/tokens.ts`). Each reference is also checked against its
- * scope (UI vs. syntax, see `scopes.ts`). The theme's `name`, `type`, `author` and `maintainers` are set from
- * `package.json`, its `semanticClass` from the theme ID.
+ * Token references are resolved in `colors`, `tokenColors` and `semanticTokenColors`.
+ * Values must be a token name or `transparent`; raw hex colors are forbidden in the JSONC.
+ * Each reference is checked against its allowed scope (UI vs. syntax).
+ * The theme metadata is applied from `package.json`.
  */
 
 import type {

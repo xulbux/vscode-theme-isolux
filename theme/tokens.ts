@@ -2,15 +2,13 @@
  * Tokens – The semantic colors of every Isolux theme.
  *
  * Every theme is a function named after its theme ID in camelCase (`isolux-pro` → `isoluxPro`) that returns its
- * tokens (see `scripts/core/tokens.ts`). Values are `[dark, light]` pairs, or a single color used in every variant.
- * The shared `theme/theme.jsonc` references the tokens by name (e.g., `ui.foreground.muted`), so every theme must
- * define the same token names.
+ * tokens. Values are `[dark, light]` pairs, or a single color used in every variant.
+ * The shared `theme/theme.jsonc` references tokens by name, so every theme must define the same names.
  *
  * Naming:
- * - Neutrals are named property first: `ui.background.*`, `ui.foreground.*`, `ui.border.*`.
- * - Components, roles and purposes are groups with slots (e.g., `ui.button.hover`, `ui.error.background`,
- *   `ui.added.line`); `DEFAULT` stands for the group itself (e.g., `ui.accent`).
- * - Translucent colors are named after their purpose (e.g., `ui.selection`), not their opacity.
+ * - Neutrals: `ui.background.*`, `ui.foreground.*`, `ui.border.*`.
+ * - Components/Roles: groups with slots (e.g., `ui.button.hover`); `DEFAULT` stands for the group itself.
+ * - Translucent colors: named after their purpose, not their opacity.
  */
 
 import { alpha, defineTheme, lightness, onColor } from '../scripts/api.ts';

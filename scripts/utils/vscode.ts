@@ -1,8 +1,7 @@
 /**
  * VS Code installation – Locates the locally installed VS Code and reads its version and data folder.
  *
- * The installation is detected automatically; Set `VSCODE_APP_ROOT` to the
- * `resources/app` folder of an installation to use a specific one.
+ * The installation is detected automatically; Set `VSCODE_APP_ROOT` to use a specific one.
  */
 
 import fs from 'node:fs';

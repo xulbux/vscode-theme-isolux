@@ -1,17 +1,9 @@
 /**
- * Color IDs – Reads every theme color ID known to the locally installed VS Code, together with its description.
+ * Color IDs – Reads every theme color ID known to the locally installed VS Code.
  *
- * The build uses them to flag unknown keys in `colors` and to show each key's description on hover
- * (VS Code's own schema can't be used for that, as it also requires hex values). Collected from:
- * - the workbench bundle of the VS Code installation (core colors)
- * - the built-in extensions of that installation (e.g., `gitDecoration.*`)
- * - the user's installed extensions (e.g., in `~/.vscode/extensions`; The data folder is named by the
- *   installation's `product.json`, see `getUserExtensionsDir`), only the newest version of each
- *
- * They always match the installed VS Code version: the result is cached (see `readVsCodeColorIds`), keyed by
- * everything it's read from (the installation, its version and the modification times of the bundle and the
- * extension folders), so any update, installed or removed extension invalidates it.
- * The VS Code installation is detected automatically (see `findAppRoot`).
+ * The build uses them to flag unknown keys in `colors` and to show descriptions on hover.
+ * Colors are collected from the core workbench, built-in extensions, and user extensions.
+ * Results are cached and automatically invalidated when VS Code or extensions update.
  */
 
 import fs from 'node:fs';

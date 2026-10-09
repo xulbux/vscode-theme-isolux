@@ -1,26 +1,12 @@
 /**
  * Tokens – The semantic colors of a theme, defined per variant in `theme/tokens.ts`.
  *
- * Every theme is a function (named after the theme ID in camelCase, e.g., `isoluxPro` for `isolux-pro`) that
- * returns its token definitions (see `defineTheme`):
- * ```ts
- * export function isoluxPro() {
- *   const accent = color.violet[400];
- *   return defineTheme({
- *     ui: {
- *       background: [color.gray[950], color.gray[50]],   // → `ui.background` ([dark, light])
- *       accent: { DEFAULT: accent, drop: alpha(accent, 0.3) }, // → `ui.accent`, `ui.accent.drop`
- *     },
- *     token: { keyword: color.red[400] },                  // → `token.keyword` (same in every variant)
- *   });
- * }
- * ```
+ * Every theme is a function (e.g., `isoluxPro()`) that returns its token definitions (see `defineTheme`):
  * - Values are palette colors (`ThemeColor`s), either the same in every variant or a `[dark, light]` pair.
- * - Nested keys are joined with `.`; A `DEFAULT` key stands for the group itself. Keys are camelCase words or numbers.
- * - The helpers `lightness`, `alpha` and `onColor` derive new colors (per variant, if any input is a pair).
- *   They throw on invalid arguments (e.g., an opacity that isn't one of the `OPACITY_STEPS`).
+ * - Nested keys are joined with `.`; A `DEFAULT` key stands for the group itself.
+ * - Helpers like `lightness`, `alpha` and `onColor` derive new colors per variant.
  *
- * The JSONC theme source only references token names (see `theme.ts`), so all adjustments live here.
+ * The JSONC theme source only references token names, so all adjustments live here.
  */
 
 import type {

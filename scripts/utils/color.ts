@@ -1,14 +1,8 @@
 /**
  * Color math – Conversions between sRGB hex and OKLCH, gamut mapping, WCAG contrast and color distance.
  *
- * OKLCH (https://bottosson.github.io/posts/oklab/) is a perceptual color space:
- * - `l` – OKLCH lightness (`0` = black, `1` = white)
- * - `c` – Chroma (colorfulness, `0` = gray)
- * - `h` – Hue angle in degrees
- * Equal steps in `l` look like nearly equal steps in brightness, regardless of the hue; Only very dark colors look
- * lighter than their `l`, which the toe-corrected perceived lightness `Lr` fixes (see `toe`).
- *
- * Gamut checks support sRGB (what themes can show) and Display P3 (the wider gamut of e.g., Tailwind v4's palette).
+ * OKLCH is a perceptual color space (`l` = lightness, `c` = chroma, `h` = hue).
+ * Gamut checks support sRGB and Display P3.
  */
 
 import type { Gamut, Oklch } from '../types/index.ts';
@@ -152,8 +146,7 @@ function isInGamut(rgb: Rgb, gamut: Gamut): boolean {
 
 /**
  * OKLCH lightness → toe-corrected lightness (`Lr`, as used by OKHSL).
- * OKLCH underestimates the lightness of very dark colors; The toe-corrected `Lr` fixes that (close to CIELAB's
- * `L*`), while mid-tones and white stay almost unchanged (`0` → `0`, `1` → `1`).
+ * Fixes OKLCH underestimating the lightness of very dark colors.
  */
 function toe(l: number): number {
   const x = TOE_K3 * l - TOE_K1;
@@ -258,9 +251,7 @@ export function oklchToHex(color: Oklch): string {
 
 /**
  * Scale the perceived lightness of an opaque color, keeping its chroma and hue.
- * Scales the toe-corrected OKLCH lightness (`Lr`, see `toe`), so dark colors don't collapse to black
- * (e.g., `0.5` turns `#161616` into `#080808` instead of `#030303`).
- * Results outside of sRGB are mapped back into it (see `oklchToHex`).
+ * Scales the toe-corrected OKLCH lightness (`Lr`, see `toe`), so dark colors don't collapse to black.
  *
  * @param hex      The `#RRGGBB` color.
  * @param factor   Lightness multiplier (e.g., `0.9` for a 10 % darker color).
