@@ -81,11 +81,37 @@ ext install xulbux.theme-isolux
 
 ## Configuration ⚙️
 
-1.  Open the command input by pressing <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd> or the <kbd>F1</kbd> key.
+1.  Open the command input by pressing <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> or the <kbd>F1</kbd> key.
 
 2.  Type «*color theme*» and select `Preferences: Color Theme` from the list.
 
 3.  Search for `Isolux` and select a theme to apply it.
+
+<br>
+<br>
+
+<span id="recommended-settings" />
+
+## Recommended Settings ⚙️
+
+For the best experience with Isolux, I highly recommend adding the following options to your user's `settings.json`:
+
+```jsonc
+{
+  // Enable colorization of matching brackets.
+  "editor.bracketPairColorization.enabled": true,
+  // Use an independent color pool for each bracket type.
+  "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
+  // Highlight the guide lines of the active bracket pair.
+  "editor.guides.bracketPairs": "active",
+  // Automatically switch between dark and light themes based on your OS.
+  "window.autoDetectColorScheme": true,
+  // The dark theme to use when the OS is in dark mode.
+  "workbench.preferredDarkColorTheme": "Isolux Pro Dark",
+  // The light theme to use when the OS is in light mode.
+  "workbench.preferredLightColorTheme": "Isolux Pro Light"
+}
+```
 
 <br>
 

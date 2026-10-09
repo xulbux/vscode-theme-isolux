@@ -2,8 +2,7 @@
  * Palette – The raw colors shared by every Isolux theme.
  *
  * This is the only place for hex colors. Chromatic families are defined by a base color (shade `400`);
- * other shades are generated. Bases must have the same OKLCH lightness. The neutral `gray` scale
- * is defined manually.
+ * other shades are generated. Bases must have the same OKLCH lightness. The neutral `gray` scale is defined manually.
  */
 
 import { definePalette } from '../scripts/api.ts';
@@ -23,7 +22,7 @@ export const color = definePalette({
     950: '#000000',
   },
   red: '#FF7680',
-  orange: '#F2855A',
+  orange: '#FF7A57',
   amber: '#EC8C49',
   green: '#60C077',
   cyan: '#46BDB6',

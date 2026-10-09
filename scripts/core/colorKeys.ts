@@ -1,8 +1,8 @@
 /**
  * Color key check – Flags `colors` keys that VS Code doesn't know (misspelled, or removed from VS Code).
  *
- * The known keys are read from the locally installed VS Code on every build (see `colorIds.ts`), including the
- * colors of its built-in extensions and the locally installed extensions.
+ * The known keys are read from the locally installed VS Code on every build (see `colorIds.ts`),
+ * including the colors of its built-in extensions and the locally installed extensions.
  * The generated source schema flags the same keys right in the editor; This check also catches them in the build.
  */
 

@@ -63,8 +63,7 @@ export function didYouMean(input: string, candidates: Iterable<string>): string 
 }
 
 /**
- * Find the index of the closing quote of the string literal whose opening quote (`"`, `'` or `` ` ``) is at
- * `start`, honoring escape sequences.
+ * Find the index of the closing quote of the string literal whose opening quote (`"`, `'` or `` ` ``) is at `start`, honoring escape sequences.
  * @returns The index of the closing quote, or `text.length` if the literal isn't closed.
  */
 export function findStringEnd(text: string, start: number): number {

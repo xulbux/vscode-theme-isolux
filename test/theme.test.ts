@@ -1,6 +1,6 @@
 /**
- * Theme compiler tests – Token resolution, scopes, the contrast and the distinctness check (`scripts/core/theme.ts`,
- * `scripts/core/contrast.ts`, `scripts/core/distinctness.ts`).
+ * Theme compiler tests – Token resolution, scopes, the contrast and the distinctness check
+ * (`scripts/core/theme.ts`, `scripts/core/contrast.ts`, `scripts/core/distinctness.ts`).
  */
 
 import assert from 'node:assert/strict';

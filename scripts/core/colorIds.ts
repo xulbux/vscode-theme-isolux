@@ -182,8 +182,8 @@ function formatMessage(message: string, args: readonly (string | undefined)[]): 
 }
 
 /**
- * Resolve the description argument of a `registerColor` call: a `localize(<index>, null, …args)` call
- * (looked up in the bundle's NLS messages) or a plain string literal.
+ * Resolve the description argument of a `registerColor` call:
+ * A `localize(<index>, null, …args)` call (looked up in the bundle's NLS messages) or a plain string literal.
  */
 function resolveDescription(arg: string | undefined, messages: readonly string[]): string {
   if (arg === undefined) {

@@ -21,8 +21,8 @@ const SCOPE_GROUPS: Readonly<Record<ColorScope, readonly TokenGroup[]>> = {
 };
 
 /**
- * `colors` keys that label categories (symbol kinds, bracket nesting levels, chart series, git states, …)
- * instead of UI states. They may use syntax tokens as well (scope `any`).
+ * `colors` keys that label categories (symbol kinds, bracket nesting levels, chart series, git states, …) instead of UI states.
+ * They may use syntax tokens as well (scope `any`).
  */
 export const CATEGORY_KEY_PREFIXES: readonly string[] = [
   'charts.',

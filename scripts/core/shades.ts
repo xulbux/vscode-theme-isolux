@@ -4,22 +4,23 @@
  * The base color becomes shade `BASE_SHADE` (400) exactly. The other shades are placed in OKLCH:
  * - Lightness: every shade uses its `TARGET_LIGHTNESS`. Base colors must have the target lightness of
  *   `BASE_SHADE` as well (see `validateBaseColor`), so the same shade looks equally bright in every color family.
- * - Saturation and hue: taken from Tailwind's own color scales (the `tailwindcss` dev dependency). For every
- *   Tailwind family, it's measured how each shade's relative saturation (its chroma relative to the most colorful
- *   color the gamut can show at its lightness and hue) and hue differ from its `400` shade. A base color follows the
- *   profile of the Tailwind families closest to its hue (interpolated between the two neighbors), applied to
- *   its own relative saturation and hue. This way:
+ * - Saturation and hue: Taken from Tailwind's own color scales (the `tailwindcss` dev dependency).
+ *   For every Tailwind family, it's measured how each shade's relative saturation
+ *   (its chroma relative to the most colorful color the gamut can show at its lightness and hue
+ *   and hue differ from its `400` shade. A base color follows the profile of the Tailwind families closest to its hue
+ *   (interpolated between the two neighbors), applied to its own relative saturation and hue.
+ *   This way:
  *   - a more or less saturated base makes the whole scale more or less saturated,
- *   - each hue gets Tailwind's hand-tuned behavior (e.g., richer darker violets, calmer dark blues, ambers that
- *     turn warmer towards `950` instead of olive),
+ *   - each hue gets Tailwind's hand-tuned behavior
+ *     (e.g., richer darker violets, calmer dark blues, ambers that turn warmer towards `950` instead of olive),
  *   - the shades never leave the sRGB gamut.
  *
  * Tailwind's (v4) palette is designed for the wide Display P3 gamut, so many of its colors can't be shown in sRGB.
- * Its saturation is therefore measured relative to P3 (`TAILWIND_GAMUT`), but applied relative to sRGB. This scales
- * P3 down to sRGB proportionally instead of clipping it, so the shape of every scale is kept.
+ * Its saturation is therefore measured relative to P3 (`TAILWIND_GAMUT`), but applied relative to sRGB.
+ * This scales P3 down to sRGB proportionally instead of clipping it, so the shape of every scale is kept.
  *
  * `400` is the base (instead of Tailwind's `500`), because it's the shade most color references use:
- * on a dark background, syntax and UI accent colors need to be as bright as `400`.
+ * On a dark background, syntax and UI accent colors need to be as bright as `400`.
  */
 
 import tailwindColors from 'tailwindcss/colors';
@@ -115,7 +116,7 @@ function targetLightness(shade: Shade): number {
 }
 
 /**
- * Relative saturation of a color: its chroma relative to the highest chroma `gamut` allows at its lightness and hue.
+ * Relative saturation of a color: Its chroma relative to the highest chroma `gamut` allows at its lightness and hue.
  *
  * @param l       OKLCH lightness.
  * @param c       OKLCH chroma.
@@ -209,8 +210,7 @@ function profileForHue(hue: number, shade: number): ShadeProfile {
 
 /**
  * Check whether a color can be used as a base color (it must have the target lightness of `BASE_SHADE`).
- * @returns An error message (suggesting a corrected base with the same hue and saturation),
- *          or `undefined` if the color is a valid base.
+ * @returns An error message (suggesting a corrected base with the same hue and saturation), or `undefined` if the color is a valid base.
  */
 export function validateBaseColor(hex: string): string | undefined {
   const { l, c, h } = hexToOklch(hex);

@@ -1,14 +1,14 @@
 /**
  * Distinctness check – Warns about syntax colors that are too similar to tell apart at a glance.
  *
- * Compares every pair of colored (non-gray), opaque `token.*` tokens by their perceptual distance (`ΔE_OK`, the
- * Euclidean distance in OKLab, see `deltaEOk`), once per theme variant. Gray tokens (comments, punctuation, plain
- * text, …) are skipped, since they're told apart by their lightness and the context instead of their hue.
+ * Compares every pair of colored (non-gray), opaque `token.*` tokens by their perceptual distance
+ * (`ΔE_OK`, the Euclidean distance in OKLab, see `deltaEOk`), once per theme variant.
+ * Gray tokens (comments, punctuation, plain text, …) are skipped, since they're told apart by their lightness and the context instead of their hue.
  *
- * Pairs of tokens that never show up close to each other (e.g., regex syntax and function parameters), or that never
- * sit directly next to each other and are told apart by their glyphs (e.g., constant names and numbers), don't need
- * to be told apart by color and are listed in `UNRELATED_PAIRS`. Tokens of a `SEPARATE_CONTEXTS` group (e.g., the
- * diff lines) are only compared with each other.
+ * Pairs of tokens that never show up close to each other (e.g., regex syntax and function parameters),
+ * or that never sit directly next to each other and are told apart by their glyphs (e.g., constant names and numbers),
+ * don't need to be told apart by color and are listed in `UNRELATED_PAIRS`.
+ * Tokens of a `SEPARATE_CONTEXTS` group (e.g., the diff lines) are only compared with each other.
  */
 
 import type { BuildIssue, TokenMap, Variant } from '../types/index.ts';
@@ -34,8 +34,8 @@ const MIN_DISTANCE = 0.05;
 const SYNTAX_GROUP = 'token';
 
 /**
- * Pairs of syntax tokens that are allowed to look alike, since they never show up close to each other (or never sit
- * directly next to each other and are told apart by their glyphs). Every pair needs a reason.
+ * Pairs of syntax tokens that are allowed to look alike, since they never show up close to each other
+ * (or never sit directly next to each other and are told apart by their glyphs). Every pair needs a reason.
  */
 const UNRELATED_PAIRS: readonly UnrelatedPair[] = [
   // Escapes sit inside code strings, labels are Markdown link texts; Markdown escapes are told apart by their backslash.
@@ -68,8 +68,8 @@ function isUnrelatedPair(first: string, second: string, pairs: readonly Unrelate
  * @param tokens    The tokens of the theme.
  * @param variant   The variant to check.
  * @param options   Optional pairs of tokens that may look alike (defaults to `UNRELATED_PAIRS`).
- * @returns One warning per pair of tokens closer than `MIN_DISTANCE` (reported on the later token), except for
- *          unrelated pairs and tokens of different `SEPARATE_CONTEXTS`.
+ * @returns One warning per pair of tokens closer than `MIN_DISTANCE` (reported on the later token),
+ *          except for unrelated pairs and tokens of different `SEPARATE_CONTEXTS`.
  */
 export function checkDistinctness(
   tokens: TokenMap,

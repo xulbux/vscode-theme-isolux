@@ -4,30 +4,31 @@
  * Usage:
  *   node scripts/build.ts             Build all themes once (`pnpm run build`, also runs as `vscode:prepublish`).
  *   node scripts/build.ts --strict    Build all themes once; Warnings fail the build as well (`pnpm run build:strict`).
- *   pnpm run watch                    Rebuild all themes whenever a file in `theme/` or `scripts/` (or `package.json`)
- *                                     changes, using Node's built-in watch mode (`node --watch-path=…`).
+ *   pnpm run watch                    Rebuild all themes whenever a file in `theme/` or `scripts/` (or `package.json`) changes,
+ *                                     using Node's built-in watch mode (`node --watch-path=…`).
  *
  * Sources (three layers, each only referencing the one above it):
  * - `theme/palette.ts` – The raw colors (see `core/palette.ts`).
  * - `theme/tokens.ts`  – One function per theme, returning its semantic tokens per variant (see `core/tokens.ts`).
  * - `theme/theme.jsonc` – The VS Code theme shared by every theme, referencing tokens by name (see `core/theme.ts`).
  *
- * The themes to build are read from `contributes.themes` in `package.json` (see `core/manifest.ts`): every theme
- * path `./dist/<id>-<variant>.json` is built with the tokens of `<id>` (its function in `theme/tokens.ts`, named in
- * camelCase) in `<variant>`, using the theme's `label` as its name (the `semanticClass` is `theme.<id>`).
- * The JSON schema of the theme source is written to `dist/theme.schema.json`. Other `.json` files directly in
- * `dist/` (e.g., of a removed or renamed theme) are deleted.
+ * The themes to build are read from `contributes.themes` in `package.json` (see `core/manifest.ts`):
+ * Every theme path `./dist/<id>-<variant>.json` is built with the tokens of `<id>`
+ * (its function in `theme/tokens.ts`, named in camelCase) in `<variant>`, using the theme's `label` as its name (the `semanticClass` is `theme.<id>`).
+ * The JSON schema of the theme source is written to `dist/theme.schema.json`.
+ * Other `.json` files directly in `dist/` (e.g., of a removed or renamed theme) are deleted.
  *
- * Problems (unknown tokens, invalid token definitions, …) prevent a theme from being written. A failing theme never
- * stops the others from being built; The exit code is `1` if any theme failed. Files whose content didn't change
- * aren't rewritten, so VS Code and file watchers only reload what actually changed.
+ * Problems (unknown tokens, invalid token definitions, …) prevent a theme from being written.
+ * A failing theme never stops the others from being built; The exit code is `1` if any theme failed.
+ * Files whose content didn't change aren't rewritten, so VS Code and file watchers only reload what actually changed.
  *
- * The known color keys are read from the locally installed VS Code on every build (see `core/colorIds.ts`), so unknown
- * keys are flagged (in the schema and as build warnings) for exactly that VS Code version. Without an installation,
- * any key is accepted. Every theme is also checked for low-contrast color pairs (see `core/contrast.ts`), syntax colors
- * that are hard to tell apart (see `core/distinctness.ts`) and unused tokens. Warnings don't prevent a theme from being
- * written, but in strict mode (`--strict`, enabled automatically if the `CI` environment variable is set) they're
- * reported as errors and fail the build.
+ * The known color keys are read from the locally installed VS Code on every build (see `core/colorIds.ts`),
+ * so unknown keys are flagged (in the schema and as build warnings) for exactly that VS Code version.
+ * Without an installation, any key is accepted.
+ * Every theme is also checked for low-contrast color pairs (see `core/contrast.ts`),
+ * syntax colors that are hard to tell apart (see `core/distinctness.ts`) and unused tokens.
+ * Warnings don't prevent a theme from being written, but in strict mode (`--strict`, enabled automatically if the `CI` environment variable is set)
+ * they're reported as errors and fail the build.
  */
 
 import fs from 'node:fs';

@@ -1,9 +1,10 @@
 /**
  * Manifest – Reads the themes to build (and their metadata) from the extension's `package.json`.
  *
- * `contributes.themes` is the single source of truth for the themes and their variants: every theme path
- * `./dist/<id>-<variant>.json` is built with the tokens of `<id>` in `<variant>` (which must match the theme's
- * `uiTheme`), using the theme's `label` as its name. `author` and `maintainers` are copied into every theme.
+ * `contributes.themes` is the single source of truth for the themes and their variants:
+ * Every theme path `./dist/<id>-<variant>.json` is built with the tokens of `<id>` in `<variant>`
+ * (which must match the theme's `uiTheme`), using the theme's `label` as its name.
+ * `author` and `maintainers` are copied into every theme.
  */
 
 import path from 'node:path';

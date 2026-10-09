@@ -13,8 +13,9 @@ import { color } from './fixtures.ts';
 describe('alpha', () => {
   it('appends the alpha byte of an allowed opacity step', () => {
     const result = alpha(color.gray[50], 0.1);
-    assert.equal(result.hex, '#FAFAFA1A');
-    assert.equal(result.name, 'gray-50/10');
+    assert.ok(Array.isArray(result));
+    assert.equal(result[0].hex, '#FAFAFA1A');
+    assert.equal(result[0].name, 'gray-50/10');
   });
 
   it('derives a [dark, light] pair if any input is a pair', () => {
@@ -23,6 +24,24 @@ describe('alpha', () => {
     assert.deepEqual(
       result.map((entry) => entry.hex),
       ['#FAFAFA1A', '#FAFAFA0D']
+    );
+  });
+
+  it('automatically decreases opacity for light mode on single colors', () => {
+    const result = alpha(color.gray[50], 0.5);
+    assert.ok(Array.isArray(result));
+    assert.deepEqual(
+      result.map((entry) => entry.hex),
+      ['#FAFAFA80', '#FAFAFA40'] // 50% in dark, auto-decreased to 25% in light.
+    );
+  });
+
+  it('automatically decreases opacity for light mode on variant pairs', () => {
+    const result = alpha([color.gray[50], color.gray[950]], 0.2);
+    assert.ok(Array.isArray(result));
+    assert.deepEqual(
+      result.map((entry) => entry.hex),
+      ['#FAFAFA33', '#0000001A'] // 20% in dark, auto-decreased to 10% in light.
     );
   });
 

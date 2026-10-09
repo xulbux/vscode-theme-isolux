@@ -5,12 +5,12 @@
  * - `TEXT` (4.5:1) – Regular text (labels, editor text, active / hovered items, buttons, …)
  * - `SECONDARY` (3:1) – Intentionally dimmed text and icons (inactive tabs, placeholders, line numbers, …)
  *
- * Every pair is checked on the compiled theme (hex colors only), once per theme variant. Translucent backgrounds
- * are blended over the surface they're drawn on (`over`), translucent foregrounds over the resulting background.
+ * Every pair is checked on the compiled theme (hex colors only), once per theme variant.
+ * Translucent backgrounds are blended over the surface they're drawn on (`over`), translucent foregrounds over the resulting background.
  * Pairs whose foreground or background isn't set by the theme are skipped (VS Code's defaults apply there).
  *
- * Text on colored fills (badges, buttons, …) should use an `onColor` token (see `tokens.ts`), which picks the
- * foreground with the better contrast per variant; This check then verifies the result.
+ * Text on colored fills (badges, buttons, …) should use an `onColor` token (see `tokens.ts`),
+ * which picks the foreground with the better contrast per variant; This check then verifies the result.
  */
 
 import type { BuildIssue } from '../types/index.ts';
@@ -40,8 +40,8 @@ const TEXT = 4.5;
 const SECONDARY = 3;
 
 /**
- * Minimum contrast for neutral (gray) token colors; Dimmed tokens like comments and punctuation may go below
- * `TEXT` on purpose, while colored tokens must reach `TEXT`.
+ * Minimum contrast for neutral (gray) token colors; Dimmed tokens like comments
+ * and punctuation may go below `TEXT` on purpose, while colored tokens must reach `TEXT`.
  */
 const NEUTRAL_TOKEN = SECONDARY;
 
@@ -344,8 +344,8 @@ function checkPairs(colors: Record<string, unknown>, surface: string): BuildIssu
 }
 
 /**
- * Check the foreground of every token color against the editor background (`TEXT` for colored tokens,
- * `NEUTRAL_TOKEN` for gray ones).
+ * Check the foreground of every token color against the editor background
+ * (`TEXT` for colored tokens, `NEUTRAL_TOKEN` for gray ones).
  */
 function checkTokenColors(theme: Record<string, unknown>, editorBackground: string): BuildIssue[] {
   const issues: BuildIssue[] = [];

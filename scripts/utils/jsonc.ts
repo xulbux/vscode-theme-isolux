@@ -2,8 +2,8 @@
  * Minimal JSONC (JSON with comments) parser.
  *
  * Theme files are JSONC: they may contain `//` and `/* *\/` comments and trailing commas.
- * Those are blanked out (replaced by spaces, newlines are kept) before handing the text
- * to `JSON.parse`, so line/column positions in parse errors still match the source file.
+ * Those are blanked out (replaced by spaces, newlines are kept) before handing the text to `JSON.parse`,
+ * so line/column positions in parse errors still match the source file.
  *
  * `JSON.parse` silently keeps only the last value of a key that appears twice in the same object,
  * so the text is scanned for duplicate keys as well (see `findDuplicateKeys`).

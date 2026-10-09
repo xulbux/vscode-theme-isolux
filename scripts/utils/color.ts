@@ -42,8 +42,8 @@ const SRGB_TO_P3: readonly Rgb[] = [
 ];
 
 /**
- * Parameters of the lightness "toe" (`Lr`, see `toe`), from
- * https://bottosson.github.io/posts/colorpicker/#intermission---a-new-lightness-estimate-for-oklab.
+ * Parameters of the lightness "toe" (`Lr`, see `toe`), from:
+ * https://bottosson.github.io/posts/colorpicker/#intermission---a-new-lightness-estimate-for-oklab
  */
 const TOE_K1 = 0.206;
 /** See `TOE_K1`. */

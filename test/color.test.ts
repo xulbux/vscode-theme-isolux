@@ -1,6 +1,5 @@
 /**
- * Color math tests – Conversions, gamut mapping, lightness scaling, WCAG contrast and color distance
- * (`scripts/utils/color.ts`).
+ * Color math tests – Conversions, gamut mapping, lightness scaling, WCAG contrast and color distance (`scripts/utils/color.ts`).
  */
 
 import assert from 'node:assert/strict';

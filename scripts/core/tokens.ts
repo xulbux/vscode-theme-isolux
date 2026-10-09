@@ -85,6 +85,9 @@ const DEFAULT_KEY = 'DEFAULT';
 /** Tolerance when matching an opacity to the `OPACITY_STEPS` (in %). */
 const OPACITY_TOLERANCE = 1e-9;
 
+/** Opacity factor applied in light mode (~40% reduction) when a single opacity is used with a variant pair. */
+const LIGHT_OPACITY_FACTOR = 0.5;
+
 // ------------------------------------ REGEX PATTERNS -----------------------------------
 
 /** Matches a token key (a camelCase word or a number, e.g., `lineHighlight` or `1`). */
@@ -112,10 +115,15 @@ function derive(
   inputs: readonly VariantValue<unknown>[],
   compute: (variant: Variant) => ThemeColor
 ): VariantValue<ThemeColor> {
+  const dark = compute('dark');
   if (!inputs.some((input) => isPair(input))) {
-    return compute('dark');
+    return dark;
   }
-  return [compute('dark'), compute('light')];
+  const light = compute('light');
+  if (dark.hex === light.hex && dark.name === light.name) {
+    return dark;
+  }
+  return [dark, light];
 }
 
 /** Make sure a helper argument is a palette color. */
@@ -135,6 +143,24 @@ function assertOpaque(value: unknown, helper: string): asserts value is ThemeCol
       `${helper}(): "${value.name}" is translucent – apply the adjustment to its opaque source instead.`
     );
   }
+}
+
+/**
+ * Automatically decrease an opacity for light mode by ~40%, snapping to the closest allowed step in `OPACITY_STEPS`.
+ */
+function autoLightOpacity(darkOpacity: number): number {
+  const target = darkOpacity * LIGHT_OPACITY_FACTOR;
+  let closest = 0.05;
+  let minDiff = Infinity;
+  for (const step of OPACITY_STEPS.keys()) {
+    const s = step / 100;
+    const diff = Math.abs(s - target);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = s;
+    }
+  }
+  return closest;
 }
 
 /** Apply an opacity (one of the `OPACITY_STEPS`, as a fraction) to an opaque color. */
@@ -283,23 +309,29 @@ export function defineTheme(tokens: ThemeTokens): ThemeTokens {
 
 /**
  * Apply an opacity to a color, e.g., `alpha(color.gray[50], 0.1)`.
- * Single inputs return a single color, so it can be used inside a `[dark, light]` pair.
+ * When a single opacity is given, light mode automatically decreases the opacity by ~40%
+ * (snapping to the closest allowed step in `OPACITY_STEPS`) for softer contrast on light backgrounds.
+ * An explicit `[dark, light]` opacity pair can be passed to override this behavior.
  *
  * @param color     The opaque color (or a `[dark, light]` pair).
  * @param opacity   The opacity as a fraction, one of the `OPACITY_STEPS` (or a `[dark, light]` pair).
  */
-export function alpha(color: ThemeColor, opacity: number): ThemeColor;
-export function alpha(
-  color: VariantValue<ThemeColor>,
-  opacity: VariantValue<number>
-): VariantValue<ThemeColor>;
 export function alpha(
   color: VariantValue<ThemeColor>,
   opacity: VariantValue<number>
 ): VariantValue<ThemeColor> {
-  return derive([color, opacity], (variant) =>
-    applyAlpha(pick(color, variant), pick(opacity, variant))
-  );
+  const darkColor = pick(color, 'dark');
+  const lightColor = pick(color, 'light');
+  const darkOpacity = pick(opacity, 'dark');
+  const lightOpacity = isPair(opacity) ? pick(opacity, 'light') : autoLightOpacity(darkOpacity);
+
+  const darkResult = applyAlpha(darkColor, darkOpacity);
+  const lightResult = applyAlpha(lightColor, lightOpacity);
+
+  if (darkResult.hex === lightResult.hex && darkResult.name === lightResult.name) {
+    return darkResult;
+  }
+  return [darkResult, lightResult];
 }
 
 /**
