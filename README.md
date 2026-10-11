@@ -3,7 +3,7 @@
 <div align="center">
 <br><br>
 <h1>
-<a href="https://github.com/xulbux/vscode-theme-isolux"><img height="64" src="https://github.com/xulbux/vscode-theme-isolux/blob/main/assets/icon.png?raw=true"></a>
+<a href="https://github.com/xulbux/vscode-theme-isolux"><img height="64" src="https://raw.githubusercontent.com/xulbux/vscode-theme-isolux/main/assets/icon.png"></a>
 <br>
 Isolux Theme
 <br><br>
@@ -121,9 +121,9 @@ For the best experience with Isolux, I highly recommend adding the following opt
 
 ### Isolux Pro
 
-<a href="https://github.com/xulbux/vscode-theme-isolux/blob/main/assets/preview/isolux-pro-dark.png"><img src="https://github.com/xulbux/vscode-theme-isolux/blob/main/assets/preview/isolux-pro-dark.png?raw=true" alt="Isolux Pro Dark | Editor Preview"></a>
+<a href="https://github.com/xulbux/vscode-theme-isolux/blob/main/assets/preview/isolux-pro-dark.png"><img src="https://raw.githubusercontent.com/xulbux/vscode-theme-isolux/main/assets/preview/isolux-pro-dark.png" alt="Isolux Pro Dark | Editor Preview"></a>
 
-<a href="https://github.com/xulbux/vscode-theme-isolux/blob/main/assets/preview/isolux-pro-light.png"><img src="https://github.com/xulbux/vscode-theme-isolux/blob/main/assets/preview/isolux-pro-light.png?raw=true" alt="Isolux Pro Light | Editor Preview"></a>
+<a href="https://github.com/xulbux/vscode-theme-isolux/blob/main/assets/preview/isolux-pro-light.png"><img src="https://raw.githubusercontent.com/xulbux/vscode-theme-isolux/main/assets/preview/isolux-pro-light.png" alt="Isolux Pro Light | Editor Preview"></a>
 
 <br>
 <br>
