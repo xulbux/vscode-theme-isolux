@@ -3,11 +3,11 @@
 <div align="center">
 <br><br>
 <h1>
-<a href="https://github.com/xulbux/vscode-theme-isolux"><img height="64" src="https://raw.githubusercontent.com/xulbux/vscode-theme-isolux/main/assets/icon.png"></a>
+<a href="https://github.com/xulbux/vscode-theme-isolux"><img width="96" src="https://raw.githubusercontent.com/xulbux/vscode-theme-isolux/main/assets/icon.png"></a>
 <br>
 Isolux Theme
 <br><br>
-<a href="https://open-vsx.org/extension/xulbux/theme-isolux"><img src="https://img.shields.io/open-vsx/v/xulbux/theme-isolux?style=flat&labelColor=404060&color=7075FF"/></a> <a href="https://open-vsx.org/extension/xulbux/theme-isolux"><img src="https://img.shields.io/open-vsx/dt/xulbux/theme-isolux?style=flat&labelColor=404060&color=7075FF"/></a> <a href="https://github.com/xulbux/vscode-theme-isolux/blob/main/LICENSE"><img src="https://img.shields.io/github/license/xulbux/vscode-theme-isolux?style=flat&labelColor=404060&color=A6A8FF"/></a> <a href="https://github.com/xulbux/vscode-theme-isolux/commits"><img src="https://img.shields.io/github/last-commit/xulbux/vscode-theme-isolux?style=flat&labelColor=554046&color=FF6680"/></a> <a href="https://github.com/xulbux/vscode-theme-isolux/issues"><img src="https://img.shields.io/github/issues/xulbux/vscode-theme-isolux?style=flat&labelColor=554046&color=FF6680"/></a> <a href="https://github.com/xulbux/vscode-theme-isolux/stargazers"><img src="https://img.shields.io/github/stars/xulbux/vscode-theme-isolux?label=%E2%98%85&style=flat&labelColor=554046&color=FF8FA2"/></a>
+<a href="https://open-vsx.org/extension/xulbux/theme-isolux"><img src="https://img.shields.io/open-vsx/v/xulbux/theme-isolux?style=flat&labelColor=404060&color=7075FF"/></a> <a href="https://open-vsx.org/extension/xulbux/theme-isolux"><img src="https://img.shields.io/open-vsx/dt/xulbux/theme-isolux?style=flat&labelColor=404060&color=7075FF"/></a> <a href="https://github.com/xulbux/vscode-theme-isolux/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT*-A6A8FF?style=flat&labelColor=404060"/></a> <a href="https://github.com/xulbux/vscode-theme-isolux/commits"><img src="https://img.shields.io/github/last-commit/xulbux/vscode-theme-isolux?style=flat&labelColor=554046&color=FF6680"/></a> <a href="https://github.com/xulbux/vscode-theme-isolux/issues"><img src="https://img.shields.io/github/issues/xulbux/vscode-theme-isolux?style=flat&labelColor=554046&color=FF6680"/></a> <a href="https://github.com/xulbux/vscode-theme-isolux/stargazers"><img src="https://img.shields.io/github/stars/xulbux/vscode-theme-isolux?label=%E2%98%85&style=flat&labelColor=554046&color=FF8FA2"/></a>
 </h1>
 <h3>Calm dark and light themes on a neutral base, where every syntax color has one clear meaning.</h3>
 <br><br>
