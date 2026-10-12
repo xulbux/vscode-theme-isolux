@@ -1,25 +1,14 @@
-# Agent rules, GitHub & editor resources:
 .agents/
 .github/
 .vscode/
-
-# Preview images & code samples:
-assets/preview/
-
-# VSix package archives:
-packages/
-
-# Theme sources (the generated themes in `dist/` are shipped instead):
-theme/
-# Generated JSON schemas (only used while editing the theme sources):
-dist/*.schema.json
-
-# Build scripts, tests & dependencies:
 node_modules/
+preview/
 scripts/
 test/
+theme/
 
-# Config files:
+dist/*.schema.json
+
 .gitignore
 .markdownlint.json
 .oxfmtrc.json

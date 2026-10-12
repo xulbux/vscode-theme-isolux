@@ -6,13 +6,13 @@
   "endOfLine": "lf",
   "ignorePatterns": [
     ".github/**",
-    ".markdownlint.json",
-    "*.md",
     "assets/**",
     "dist/**",
-    "package.json",
     "packages/**",
-    "theme/**/*.jsonc"
+    "theme/**/*.jsonc",
+    ".markdownlint.json",
+    "*.md",
+    "package.json"
   ],
   "objectWrap": "collapse",
   "printWidth": 100,
