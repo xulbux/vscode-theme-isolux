@@ -10,8 +10,8 @@ import { definePalette } from '../scripts/api.ts';
 export const color = definePalette({
   gray: {
     50: '#FAFAFA',
-    100: '#E2E2E2',
-    200: '#BDBDBD',
+    100: '#E6E6E6',
+    200: '#C2C2C2',
     300: '#8A8A8A',
     400: '#646464',
     500: '#3D3D3D',

@@ -54,7 +54,7 @@ export function isoluxPro() {
   const shadow = gray[950];
   const hover = alpha(overlay, 0.05);
   const active = alpha(overlay, 0.1);
-  const foreground = [gray[100], gray[700]] as const;
+  const foreground = [gray[100], gray[800]] as const;
   const foregroundSecondary = [gray[200], gray[500]] as const;
   const foregroundMuted = [gray[300], gray[400]] as const;
   const foregroundFaint = [gray[400], lightness(gray[300], 1.025)] as const;
@@ -116,7 +116,7 @@ export function isoluxPro() {
         escape: stringLifted, // Escapes and entities (`\n`, `&amp;`), lifted out of the string.
         label: stringLifted, // Markdown link texts, image alts and titles, lifted above their (string) URL.
       },
-      text: [gray[50], gray[900]],
+      text: foreground,
       type: [green[200], green[700]],
       variable: foreground,
       warning: [lightness(orange[400], 1.1), lightness(orange[800], 1.14)],
