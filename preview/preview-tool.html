@@ -194,8 +194,7 @@
   <header>
     <h1>Isolux Preview Split Generator</h1>
     <p class="desc">
-      Drop your Dark and Light screenshots to instantly generate the floating diagonal split hero
-      preview.
+      Drop your Dark and Light screenshots to instantly generate the floating diagonal split hero preview.
     </p>
   </header>
 
@@ -272,6 +271,70 @@
     fileDark.addEventListener('change', (e) => handleImage(e.target.files[0], true));
     fileLight.addEventListener('change', (e) => handleImage(e.target.files[0], false));
 
+    // Automatically detect and correct vertical code misalignment (e.g., VS Code breadcrumbs 1px border):
+    function detectVerticalShift(darkImg, lightImg) {
+      if (!darkImg || !lightImg) return 0;
+      const offscreen = document.createElement('canvas');
+      const testW = 10;
+      const startY = 80;
+      const testH = Math.min(darkImg.height, lightImg.height) - startY - 40;
+      if (testH <= 50) return 0;
+      offscreen.width = testW;
+      offscreen.height = testH;
+      const oCtx = offscreen.getContext('2d', { willReadFrequently: true });
+      if (!oCtx) return 0;
+
+      // Sample a vertical stripe through the code (around 35% from left):
+      const sampleX = Math.round(darkImg.width * 0.35);
+
+      // Dark stripe:
+      oCtx.drawImage(darkImg, sampleX, startY, testW, testH, 0, 0, testW, testH);
+      const darkData = oCtx.getImageData(0, 0, testW, testH).data;
+
+      // Light stripe:
+      oCtx.clearRect(0, 0, testW, testH);
+      oCtx.drawImage(lightImg, sampleX, startY, testW, testH, 0, 0, testW, testH);
+      const lightData = oCtx.getImageData(0, 0, testW, testH).data;
+
+      // Compute horizontal sum of luminance per row (inverting light so text peaks match):
+      const darkLum = new Float32Array(testH);
+      const lightLum = new Float32Array(testH);
+      for (let y = 0; y < testH; y++) {
+        let sumD = 0;
+        let sumL = 0;
+        for (let x = 0; x < testW; x++) {
+          const idx = (y * testW + x) * 4;
+          sumD += 0.299 * darkData[idx] + 0.587 * darkData[idx + 1] + 0.114 * darkData[idx + 2];
+          sumL +=
+            255 -
+            (0.299 * lightData[idx] + 0.587 * lightData[idx + 1] + 0.114 * lightData[idx + 2]);
+        }
+        darkLum[y] = sumD / testW;
+        lightLum[y] = sumL / testW;
+      }
+
+      // Find offset dy in [-4..4] that maximizes cross-correlation:
+      let bestDy = 0;
+      let maxCorr = -Infinity;
+      for (let dy = -4; dy <= 4; dy++) {
+        let score = 0;
+        let count = 0;
+        for (let y = 10; y < testH - 10; y++) {
+          const ly = y + dy;
+          if (ly >= 0 && ly < testH) {
+            score += darkLum[y] * lightLum[ly];
+            count++;
+          }
+        }
+        const avg = count > 0 ? score / count : 0;
+        if (avg > maxCorr) {
+          maxCorr = avg;
+          bestDy = dy;
+        }
+      }
+      return bestDy;
+    }
+
     function render() {
       if (!imgDark && !imgLight) {
         ctx.fillStyle = '#181818';
@@ -314,6 +377,9 @@
         warningBanner.style.display = 'none';
       }
 
+      // Automatically detect vertical alignment difference:
+      const verticalOffset = imgDark && imgLight ? detectVerticalShift(imgDark, imgLight) : 0;
+
       // Clear canvas and clip to rounded rectangle for transparent outer corners:
       ctx.clearRect(0, 0, w, h);
       ctx.save();
@@ -339,9 +405,9 @@
       const topX = w * pos + offset;
       const botX = w * pos - offset;
 
-      // [1] Draw Light image on the background (entire canvas):
+      // [1] Draw Light image on the background (with vertical auto-alignment):
       if (imgLight) {
-        ctx.drawImage(imgLight, 0, 0, w, h);
+        ctx.drawImage(imgLight, 0, -verticalOffset, w, h);
       } else {
         ctx.fillStyle = '#FAFAFA';
         ctx.fillRect(0, 0, w, h);
@@ -382,8 +448,12 @@
 
       const ready = Boolean(imgDark && imgLight);
       downloadBtn.disabled = !ready;
+      const alignInfo =
+        verticalOffset !== 0
+          ? ` • Code auto-aligned (${verticalOffset > 0 ? `-${verticalOffset}` : `+${-verticalOffset}`}px offset)`
+          : '';
       statusText.textContent = ready
-        ? `Ready to export (${w} × ${h}px)`
+        ? `Ready to export (${w} × ${h}px)${alignInfo}`
         : imgDark
           ? 'Light screenshot needed'
           : 'Dark screenshot needed';
@@ -391,7 +461,7 @@
 
     downloadBtn.addEventListener('click', () => {
       const link = document.createElement('a');
-      link.download = 'isolux-pro-hero.png';
+      link.download = 'preview.png';
       link.href = canvas.toDataURL('image/png');
       link.click();
     });

@@ -121,9 +121,7 @@ For the best experience with Isolux, I highly recommend adding the following opt
 
 ### Isolux Pro
 
-<a href="https://github.com/xulbux/vscode-theme-isolux/blob/main/assets/preview/isolux-pro-dark.png"><img src="https://raw.githubusercontent.com/xulbux/vscode-theme-isolux/main/assets/preview/isolux-pro-dark.png" alt="Isolux Pro Dark | Editor Preview"></a>
-
-<a href="https://github.com/xulbux/vscode-theme-isolux/blob/main/assets/preview/isolux-pro-light.png"><img src="https://raw.githubusercontent.com/xulbux/vscode-theme-isolux/main/assets/preview/isolux-pro-light.png" alt="Isolux Pro Light | Editor Preview"></a>
+<a href="https://github.com/xulbux/vscode-theme-isolux/blob/main/preview/img/isolux-pro.png"><img src="https://raw.githubusercontent.com/xulbux/vscode-theme-isolux/main/preview/img/isolux-pro.png" alt="Isolux Pro | Editor Preview"></a>
 
 <br>
 <br>
