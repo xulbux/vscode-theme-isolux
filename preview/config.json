@@ -1,0 +1,11 @@
+{
+  "name": "telemetry-gateway",
+  "version": "1.0.0",
+  "enabled": true,
+  "endpoint": "https://api.isolux.internal/v1/metrics",
+  "port": 8080,
+  "retries": 3,
+  "bufferSize": 4096,
+  "timeoutMs": 250,
+  "logLevel": "info"
+}

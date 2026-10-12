@@ -10,7 +10,7 @@
   },
   "env": { "builtin": true, "node": true },
   "globals": {},
-  "ignorePatterns": ["assets/**", "dist/**", "package.json", "packages/**"],
+  "ignorePatterns": ["assets/**", "dist/**", "package.json", "packages/**", "preview/**"],
   "plugins": ["eslint", "oxc", "typescript", "unicorn"],
   "rules": {
     "capitalized-comments": "off",

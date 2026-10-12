@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Isolux Theme Preview Generator</title>
+  <style>
+    :root {
+      --bg: #101010;
+      --surface: #181818;
+      --border: #333333;
+      --accent: #909FFF;
+      --fg: #E6E6E6;
+      --fg-muted: #8A8A8A;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family:
+        -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      padding: 36px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      font-size: 26px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #FFF;
+    }
+
+    p.desc {
+      color: var(--fg-muted);
+      font-size: 14px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1000px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+    }
+
+    .dropzones {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 36px 20px;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.02);
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .dropzone:hover,
+    .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(175, 145, 255, 0.05);
+    }
+
+    .dropzone input[type='file'] {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .dropzone h3 {
+      font-size: 16px;
+      margin-bottom: 6px;
+      color: #FFF;
+    }
+
+    .dropzone p {
+      font-size: 13px;
+      color: var(--fg-muted);
+    }
+
+    .dropzone .preview-thumb {
+      max-height: 120px;
+      max-width: 100%;
+      margin-top: 14px;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+      display: none;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .warning-banner {
+      background: rgba(236, 140, 73, 0.15);
+      border: 1px solid #EC8C49;
+      color: #FFB37C;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.4;
+      margin-top: 16px;
+    }
+
+    .status-text {
+      font-size: 13px;
+      color: var(--fg-muted);
+    }
+
+    button.btn {
+      background: var(--accent);
+      color: #101010;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      padding: 11px 24px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: filter 0.2s ease;
+    }
+
+    button.btn:hover {
+      filter: brightness(1.1);
+    }
+
+    button.btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .preview-canvas-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .preview-canvas-container h3 {
+      align-self: flex-start;
+      font-size: 15px;
+      color: var(--fg-muted);
+      font-weight: 500;
+    }
+
+    canvas {
+      max-width: 100%;
+      height: auto;
+      filter: drop-shadow(0 8px 32px rgba(0, 0, 0, 0.6));
+      background: transparent;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Isolux Preview Split Generator</h1>
+    <p class="desc">
+      Drop your Dark and Light screenshots to instantly generate the floating diagonal split hero
+      preview.
+    </p>
+  </header>
+
+  <div class="container">
+    <div class="panel">
+      <div class="dropzones">
+        <div class="dropzone" id="dropDark">
+          <input type="file" id="fileDark" accept="image/*" />
+          <h3>1. Dark Mode Screenshot</h3>
+          <p>Drop dark mode screenshot or click to browse</p>
+          <img id="thumbDark" class="preview-thumb" alt="Dark preview" />
+        </div>
+        <div class="dropzone" id="dropLight">
+          <input type="file" id="fileLight" accept="image/*" />
+          <h3>2. Light Mode Screenshot</h3>
+          <p>Drop light mode screenshot or click to browse</p>
+          <img id="thumbLight" class="preview-thumb" alt="Light preview" />
+        </div>
+      </div>
+
+      <div id="warningBanner" class="warning-banner" style="display: none">
+        <strong>Dimension mismatch:</strong>
+        Dark screenshot is <strong id="warnDarkDim"></strong>, but Light is <strong id="warnLightDim"></strong>.
+        Screenshots should have identical dimensions to avoid misalignment.
+      </div>
+
+      <div class="actions">
+        <span class="status-text" id="statusText">Awaiting screenshots...</span>
+        <button id="downloadBtn" class="btn" disabled>Download Split Image (PNG)</button>
+      </div>
+    </div>
+
+    <div class="preview-canvas-container">
+      <h3>Live Preview</h3>
+      <canvas id="outputCanvas" width="1280" height="720"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const fileDark = document.getElementById('fileDark');
+    const fileLight = document.getElementById('fileLight');
+    const thumbDark = document.getElementById('thumbDark');
+    const thumbLight = document.getElementById('thumbLight');
+    const statusText = document.getElementById('statusText');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const canvas = document.getElementById('outputCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let imgDark = null;
+    let imgLight = null;
+
+    function handleImage(file, isDark) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          if (isDark) {
+            imgDark = img;
+            thumbDark.src = e.target.result;
+            thumbDark.style.display = 'inline-block';
+          } else {
+            imgLight = img;
+            thumbLight.src = e.target.result;
+            thumbLight.style.display = 'inline-block';
+          }
+          render();
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    fileDark.addEventListener('change', (e) => handleImage(e.target.files[0], true));
+    fileLight.addEventListener('change', (e) => handleImage(e.target.files[0], false));
+
+    function render() {
+      if (!imgDark && !imgLight) {
+        ctx.fillStyle = '#181818';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#8A8A8A';
+        ctx.font = '15px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(
+          'Drop both Dark and Light screenshots to preview',
+          canvas.width / 2,
+          canvas.height / 2
+        );
+        statusText.textContent = 'Awaiting screenshots...';
+        downloadBtn.disabled = true;
+        return;
+      }
+
+      const w = imgDark ? imgDark.width : imgLight.width;
+      const h = imgDark ? imgDark.height : imgLight.height;
+      canvas.width = w;
+      canvas.height = h;
+
+      // Concentric corner radius matching VS Code's inner window curve + padding:
+      const cornerRadius = Math.round(12 * (w / 1024));
+      const shadowScale = Math.max(0.6, w / 1920);
+
+      // Check dimension mismatch:
+      const warningBanner = document.getElementById('warningBanner');
+      const warnDarkDim = document.getElementById('warnDarkDim');
+      const warnLightDim = document.getElementById('warnLightDim');
+      if (
+        imgDark &&
+        imgLight &&
+        (imgDark.width !== imgLight.width || imgDark.height !== imgLight.height)
+      ) {
+        warnDarkDim.textContent = `${imgDark.width} × ${imgDark.height}px`;
+        warnLightDim.textContent = `${imgLight.width} × ${imgLight.height}px`;
+        warningBanner.style.display = 'block';
+      } else {
+        warningBanner.style.display = 'none';
+      }
+
+      // Clear canvas and clip to rounded rectangle for transparent outer corners:
+      ctx.clearRect(0, 0, w, h);
+      ctx.save();
+      ctx.beginPath();
+      if (ctx.roundRect) {
+        ctx.roundRect(0, 0, w, h, cornerRadius);
+      } else {
+        ctx.moveTo(cornerRadius, 0);
+        ctx.lineTo(w - cornerRadius, 0);
+        ctx.quadraticCurveTo(w, 0, w, cornerRadius);
+        ctx.lineTo(w, h - cornerRadius);
+        ctx.quadraticCurveTo(w, h, w - cornerRadius, h);
+        ctx.lineTo(cornerRadius, h);
+        ctx.quadraticCurveTo(0, h, 0, h - cornerRadius);
+        ctx.lineTo(0, cornerRadius);
+        ctx.quadraticCurveTo(0, 0, cornerRadius, 0);
+      }
+      ctx.clip();
+
+      // Fixed split parameters: 50% split with -25° diagonal tilt:
+      const pos = 0.5;
+      const offset = w * 0.15;
+      const topX = w * pos + offset;
+      const botX = w * pos - offset;
+
+      // [1] Draw Light image on the background (entire canvas):
+      if (imgLight) {
+        ctx.drawImage(imgLight, 0, 0, w, h);
+      } else {
+        ctx.fillStyle = '#FAFAFA';
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      // [2] Cast elevation drop shadow from the dark half onto the light half (subtle, soft Apple-style diffusion):
+      if (imgDark) {
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.28)';
+        ctx.shadowBlur = Math.round(36 * shadowScale);
+        ctx.shadowOffsetX = Math.round(10 * shadowScale);
+        ctx.shadowOffsetY = 0;
+        ctx.fillStyle = '#000000';
+
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(topX, 0);
+        ctx.lineTo(botX, h);
+        ctx.lineTo(0, h);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+        // [3] Clip and draw Dark image on top of the filled polygon:
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(topX, 0);
+        ctx.lineTo(botX, h);
+        ctx.lineTo(0, h);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(imgDark, 0, 0, w, h);
+        ctx.restore();
+      }
+
+      ctx.restore(); // Restore outer rounded corner clipping.
+
+      const ready = Boolean(imgDark && imgLight);
+      downloadBtn.disabled = !ready;
+      statusText.textContent = ready
+        ? `Ready to export (${w} × ${h}px)`
+        : imgDark
+          ? 'Light screenshot needed'
+          : 'Dark screenshot needed';
+    }
+
+    downloadBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'isolux-pro-hero.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+
+    render();
+  </script>
+</body>
+
+</html>
