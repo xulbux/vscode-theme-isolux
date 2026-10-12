@@ -2,7 +2,7 @@
   "name": "theme-isolux",
   "version": "1.0.0",
   "displayName": "Isolux Theme",
-  "description": "Calm dark and light themes on a neutral base, where every syntax color has one clear meaning.",
+  "description": "Calm dark and light themes with clear, semantic syntax colors.",
   "categories": ["Themes"],
   "keywords": [
     "accessible",
