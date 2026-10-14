@@ -14,7 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
--   Highlight HTML, XML, and JSX/Vue tag names as types (`token.type`) to match their DOM and component type semantics, eliminating visual collisions with control-flow keywords.
+-   Highlight component tag names (JSX, Vue components) as types (`token.type`) to distinguish them from native DOM elements, and render native HTML/XML tags as structural keywords (`token.keyword`) for clear contrast against text content.
+-   Render Vue control directives (`v-if`, `v-for`, etc.) as upright attributes (`token.property`) to eliminate visual collisions with tag names on single-line elements.
+-   Highlight HTML class and ID attribute values as standard strings (`token.string`) instead of function identifiers.
 -   Improve contrast and visibility of pre-release extension badges across dark and light variants (`extensionIcon.preReleaseForeground`).
 -   Brighten merge conflict colors (`ui.conflict`) to match Git saturation, and align renamed files (`gitDecoration.renamedResourceForeground`) with additions to avoid colliding with diagnostic warnings.
 -   Allow list and tree icons to retain their individual semantic colors on active selection.
