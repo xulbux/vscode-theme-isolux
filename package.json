@@ -1,6 +1,6 @@
 {
   "name": "theme-isolux",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "displayName": "Isolux Theme",
   "description": "Calm dark and light themes with clear, semantic syntax colors.",
   "categories": ["Themes"],
@@ -50,7 +50,7 @@
     "watch": "node --watch-path=theme --watch-path=scripts --watch-path=package.json scripts/build.ts"
   },
   "icon": "./assets/icon.png",
-  "galleryBanner": { "color": "#181818", "theme": "dark" },
+  "galleryBanner": { "color": "#101010", "theme": "dark" },
   "engines": { "vscode": "^1.87.0" },
   "devEngines": { "runtime": { "name": "node", "version": ">=22.18.0", "onFail": "error" } },
   "sponsor": { "url": "https://github.com/sponsors/xulbux" },
