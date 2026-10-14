@@ -2,8 +2,8 @@
  * Color IDs – Reads every theme color ID known to the locally installed VS Code.
  *
  * The build uses them to flag unknown keys in `colors` and to show descriptions on hover.
- * Colors are collected from the core workbench, built-in extensions, and user extensions.
- * Results are cached and automatically invalidated when VS Code or extensions update.
+ * Colors are collected from the core workbench and built-in extensions.
+ * Results are cached and automatically invalidated when VS Code updates.
  */
 
 import fs from 'node:fs';
@@ -11,12 +11,7 @@ import path from 'node:path';
 import type { VsCodeColorIds } from '../types/index.ts';
 import { listDirectories, readJson, readJsonIfExists } from '../utils/fs.ts';
 import { escapeRegExp, findStringEnd } from '../utils/strings.ts';
-import {
-  findAppRoot,
-  getUserExtensionsDir,
-  readVsCodeVersion,
-  WORKBENCH_BUNDLE,
-} from '../utils/vscode.ts';
+import { findAppRoot, readVsCodeVersion, WORKBENCH_BUNDLE } from '../utils/vscode.ts';
 
 // ---------------------------------------- TYPES ----------------------------------------
 
@@ -94,7 +89,7 @@ const MIN_CORE_COLOR_COUNT = 500;
 const TERMINAL_ANSI_PREFIX = 'terminal.ansi';
 
 /** Version of the extraction logic; Bump it to invalidate existing caches when the extraction changes. */
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 
 // ------------------------------------ REGEX PATTERNS -----------------------------------
 
@@ -372,10 +367,8 @@ function modifiedAt(file: string): number {
 
 /**
  * Build the cache key of a VS Code installation: everything the color IDs are read from.
- * Installing, updating or removing an extension changes the modification time of its extensions folder.
  */
 function getCacheKey(appRoot: string): string {
-  const userExtensionsDir = getUserExtensionsDir(appRoot);
   return JSON.stringify([
     CACHE_VERSION,
     appRoot,
@@ -383,8 +376,6 @@ function getCacheKey(appRoot: string): string {
     modifiedAt(path.join(appRoot, WORKBENCH_BUNDLE)),
     modifiedAt(path.join(appRoot, NLS_MESSAGES)),
     modifiedAt(path.join(appRoot, 'extensions')),
-    modifiedAt(userExtensionsDir),
-    modifiedAt(path.join(userExtensionsDir, 'extensions.json')),
   ]);
 }
 
@@ -408,20 +399,18 @@ function writeCache(cacheFile: string, cache: ColorIdsCache): void {
   }
 }
 
-/** Read every theme color ID (with its description) from a VS Code installation and the extensions. */
+/** Read every theme color ID (with its description) from a VS Code installation (core and built-in extensions). */
 function extractColorIds(appRoot: string): VsCodeColorIds {
   const core = extractCoreColors(appRoot);
   const builtIn = extractExtensionColors(path.join(appRoot, 'extensions'));
-  const user = extractExtensionColors(getUserExtensionsDir(appRoot));
 
   const colors: DescriptionMap = new Map();
-  for (const [id, description] of [...core, ...builtIn.colors, ...user.colors]) {
+  for (const [id, description] of [...core, ...builtIn.colors]) {
     addColor(colors, id, description);
   }
 
   return {
     colors: Object.fromEntries([...colors].toSorted(([a], [b]) => (a < b ? -1 : 1))),
-    extensions: user.extensions.toSorted(),
     vscodeVersion: readVsCodeVersion(appRoot),
   };
 }

@@ -45,7 +45,7 @@ function bracket(scale: ShadeScale): {
 
 const { amber, cyan, fuchsia, gray, green, indigo, orange, purple, red, violet } = color;
 
-/** Isolux Pro – Neutral grays with a violet accent and a few clearly separated syntax colors, each with one meaning. */
+/** Isolux ProNeutral – Neutral grays and clearly separated syntax colors, each with one meaning. */
 export function isoluxPro() {
   // Neutrals (the gray scale isn't evenly spaced, so the light grays are picked instead of mirrored):
   const white = lightness(gray[50], 1.5);
@@ -73,18 +73,15 @@ export function isoluxPro() {
   // Info is neutral, so only problems and changes stand out in color:
   const accentScale = indigo;
   const accent = [accentScale[400], accentScale[700]] as const;
-  const accentMuted = alpha(accent, 0.6);
   const error = [red[400], lightness(red[700], 1.075)] as const;
   const warning = [amber[300], lightness(amber[700], 1.05)] as const;
   const info = foregroundSecondary;
   const success = [indigo[400], lightness(indigo[700], 1.1)] as const;
   const added = success;
-  // Halfway between `added` (indigo) and `removed` (red);
-  // One shade lighter, since fuchsia is far more saturated than indigo at the same shade (`300` has about the chroma of `indigo[400]`):
-  const modified = mirror(fuchsia, 300);
+  const modified = mirror(fuchsia, 300); // Halfway between `added` and `removed`.
   const removed = error;
   const match = accentScale[500];
-  const conflict = [amber[400], lightness(amber[600], 0.93)] as const;
+  const conflict = mirror(orange, 300);
   const offline = [orange[400], orange[700]] as const;
   const ai = accent;
   const roleHover = [1.1, 0.9] as const; // Hovered fills get brighter in dark and darker in light.
@@ -219,7 +216,6 @@ export function isoluxPro() {
         subtle: alpha(accent, 0.1),
         soft: alpha(accent, 0.15),
         drop: alpha(accent, 0.3),
-        muted: accentMuted,
       },
       error: {
         DEFAULT: error,
@@ -354,9 +350,13 @@ export function isoluxPro() {
         5: mirror(cyan, 200),
         baseRef: mirror(orange, 400),
       },
-      extension: { private: alpha(overlay, 0.4), sponsor: mirror(red, 400) },
+      extension: {
+        preRelease: indigo[700],
+        private: alpha(overlay, 0.4),
+        sponsor: mirror(red, 400),
+      },
       lightBulb: accent,
-      renamed: [orange[300], orange[800]],
+      markdownAlert: { important: mirror(purple, 300), tip: mirror(green, 300) },
       running: mirror(orange, 400),
       submodule: mirror(cyan, 200),
     },

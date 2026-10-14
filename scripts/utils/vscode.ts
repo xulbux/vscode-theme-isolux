@@ -1,5 +1,5 @@
 /**
- * VS Code installation – Locates the locally installed VS Code and reads its version and data folder.
+ * VS Code installation – Locates the locally installed VS Code and reads its version.
  *
  * The installation is detected automatically; Set `VSCODE_APP_ROOT` to use a specific one.
  */
@@ -7,7 +7,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { listDirectories, readJson, readJsonIfExists } from './fs.ts';
+import { listDirectories, readJson } from './fs.ts';
 
 // ---------------------------------------- TYPES ----------------------------------------
 
@@ -17,19 +17,10 @@ interface AppManifest {
   version: string;
 }
 
-/** The parts of the installation's `product.json` relevant to the build. */
-interface ProductJson {
-  /** Name of the user data folder in the home directory (e.g., `.vscode`, `.vscode-insiders` or `.vscode-oss`). */
-  dataFolderName?: string;
-}
-
 // ---------------------------------------- CONSTS ---------------------------------------
 
 /** The workbench bundle (relative to `resources/app`), which registers the core theme colors. */
 export const WORKBENCH_BUNDLE = path.join('out', 'vs', 'workbench', 'workbench.desktop.main.js');
-
-/** The data folder of VS Code (stable), used if the installation's `product.json` doesn't name one. */
-const DEFAULT_DATA_FOLDER_NAME = '.vscode';
 
 // -------------------------------------- INTERNALS --------------------------------------
 
@@ -113,13 +104,4 @@ export function findAppRoot(): string {
 /** Read the version (e.g., `1.105.0`) of the VS Code installation at `appRoot` (see `findAppRoot`). */
 export function readVsCodeVersion(appRoot: string): string {
   return (readJson(path.join(appRoot, 'package.json')) as AppManifest).version;
-}
-
-/**
- * Get the folder of the user's installed extensions for the VS Code installation at `appRoot`
- * (e.g., `~/.vscode/extensions`, or `~/.vscode-insiders/extensions` for VS Code Insiders).
- */
-export function getUserExtensionsDir(appRoot: string): string {
-  const product = (readJsonIfExists(path.join(appRoot, 'product.json')) ?? {}) as ProductJson;
-  return path.join(os.homedir(), product.dataFolderName ?? DEFAULT_DATA_FOLDER_NAME, 'extensions');
 }

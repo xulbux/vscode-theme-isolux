@@ -140,12 +140,8 @@ function writeJson(file: string, data: unknown): boolean {
  */
 function readKnownColors(): ColorDescriptions | undefined {
   try {
-    const { colors, extensions, vscodeVersion } = readVsCodeColorIds(COLOR_IDS_CACHE_FILE);
-    const fromExtensions =
-      extensions.length > 0 ? `, incl. ${pluralize(extensions.length, 'installed extension')}` : '';
-    logInfo(
-      `Known color keys: ${Object.keys(colors).length} (VS Code ${vscodeVersion}${fromExtensions}).`
-    );
+    const { colors, vscodeVersion } = readVsCodeColorIds(COLOR_IDS_CACHE_FILE);
+    logInfo(`Known color keys: ${Object.keys(colors).length} (VS Code ${vscodeVersion}).`);
     return colors;
   } catch (error) {
     logWarn(`Unknown color keys can't be flagged – ${errorMessage(error)}`);
