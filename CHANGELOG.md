@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
--   Highlight Vue template control directives (`v-if`, `v-else-if`, `v-else`, `v-for`) as italic attributes to prevent visual collisions with tag names on single-line elements.
+-   Highlight HTML, XML, and JSX/Vue tag names as types (`token.type`) to match their DOM and component type semantics, eliminating visual collisions with control-flow keywords.
 -   Improve contrast and visibility of pre-release extension badges across dark and light variants (`extensionIcon.preReleaseForeground`).
 -   Brighten merge conflict colors (`ui.conflict`) to match Git saturation, and align renamed files (`gitDecoration.renamedResourceForeground`) with additions to avoid colliding with diagnostic warnings.
 -   Allow list and tree icons to retain their individual semantic colors on active selection.

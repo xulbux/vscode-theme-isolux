@@ -949,7 +949,6 @@
     },
     {
       "scope": [
-        "entity.name.tag",
         "keyword.operator.alignof",
         "keyword.operator.cast",
         "keyword.operator.delete",
@@ -1070,8 +1069,6 @@
         "entity.name.variable.field",
         "entity.name.variable.property",
         "entity.other.attribute-name",
-        "keyword.control.conditional.vue",
-        "keyword.control.repeat.vue",
         "keyword.other.definition.ini",
         "meta.attribute.python",
         "meta.object-literal.key punctuation.definition.string",
@@ -1217,6 +1214,7 @@
         "comment.git-status.header.local",
         "entity.name.class",
         "entity.name.lifetime.rust",
+        "entity.name.tag",
         "entity.name.type",
         "entity.other.alias",
         "entity.other.inherited-class",
@@ -1324,8 +1322,6 @@
         "entity.other.inherited-class",
         "entity.other.pseudo-class",
         "entity.other.pseudo-element",
-        "keyword.control.conditional.vue",
-        "keyword.control.repeat.vue",
         "keyword.declaration",
         "keyword.other.type",
         "storage.modifier",
