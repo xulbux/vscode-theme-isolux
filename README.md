@@ -1,22 +1,22 @@
 <span id="top" />
 
 <div align="center">
-<br><br>
-<h1>
-<a href="https://github.com/xulbux/vscode-theme-isolux"><img width="96" src="https://raw.githubusercontent.com/xulbux/vscode-theme-isolux/main/assets/icon.png"></a>
-<br>
-Isolux Theme
-<br><br>
-<a href="https://open-vsx.org/extension/xulbux/theme-isolux"><img src="https://svg.xul.is/badge/ovsx/xulbux/theme-isolux/v?color=indigo" /></a>
-<a href="https://open-vsx.org/extension/xulbux/theme-isolux"><img src="https://svg.xul.is/badge/ovsx/xulbux/theme-isolux/dt?color=indigo" /></a>
-<a href="https://github.com/xulbux/vscode-theme-isolux/blob/main/LICENSE"><img src="https://svg.xul.is/badge/license/MIT*?variant=3&color=indigo&icon=scale" /></a>
-<br>
-<a href="https://github.com/xulbux/vscode-theme-isolux/commits"><img src="https://svg.xul.is/badge/gh/python-lib-xulbux/commit?color=rose"/></a>
-<a href="https://github.com/xulbux/vscode-theme-isolux/issues"><img src="https://svg.xul.is/badge/gh/python-lib-xulbux/issues?color=rose"/></a>
-<a href="https://github.com/xulbux/vscode-theme-isolux/stargazers"><img src="https://svg.xul.is/badge/gh/python-lib-xulbux/stars?variant=3&color=rose&anim=pulse"/></a>
-</h1>
-<h3>Calm dark and light themes with clear, semantic syntax colors.</h3>
-<br><br>
+  <br><br>
+  <h1>
+    <a href="https://github.com/xulbux/vscode-theme-isolux"><img width="96" src="https://raw.githubusercontent.com/xulbux/vscode-theme-isolux/main/assets/icon.png"></a>
+    <br>
+    Isolux Theme
+    <br><br>
+    <a href="https://github.com/xulbux/vscode-theme-isolux/commits"><img src="https://svg.xul.is/badge/gh/python-lib-xulbux/commit?color=rose"/></a>
+    <a href="https://github.com/xulbux/vscode-theme-isolux/issues"><img src="https://svg.xul.is/badge/gh/python-lib-xulbux/issues?color=rose"/></a>
+    <a href="https://github.com/xulbux/vscode-theme-isolux/stargazers"><img src="https://svg.xul.is/badge/gh/python-lib-xulbux/stars?variant=3&color=rose&anim=pulse"/></a>
+    <br>
+    <a href="https://open-vsx.org/extension/xulbux/theme-isolux"><img src="https://svg.xul.is/badge/ovsx/xulbux/theme-isolux/v?color=indigo" /></a>
+    <a href="https://open-vsx.org/extension/xulbux/theme-isolux"><img src="https://svg.xul.is/badge/ovsx/xulbux/theme-isolux/dt?color=indigo" /></a>
+    <a href="https://github.com/xulbux/vscode-theme-isolux/blob/main/LICENSE"><img src="https://svg.xul.is/badge/license/MIT*?variant=3&color=indigo&icon=scale" /></a>
+  </h1>
+  <h3>Calm dark and light themes with clear, semantic syntax colors.</h3>
+  <br><br>
 </div>
 
 This VS Code extension contains themes with a calm, neutral base and a small set of clearly separated syntax colors, each with one meaning, while variables and parameters stay neutral.<br>
@@ -32,7 +32,7 @@ Every color family is derived from a base color with **the same perceived bright
 
 <span id="installation" />
 
-## Installation <img src="https://svg.xul.is/icon/package?size=32&stroke=2" />
+## Installation ![](https://svg.xul.is/icon/package?size=32&stroke=2)
 
 Search for **Isolux Theme** in the VS Code extensions panel, or install via the command line:
 
@@ -44,48 +44,22 @@ ext install xulbux.theme-isolux
 
 <span id="features" />
 
-## Features <img src="https://svg.xul.is/icon/zap?size=32&stroke=2" />
+## Features ![](https://svg.xul.is/icon/zap?size=32&stroke=2)
 
-<table>
-  <thead>
-    <tr>
-      <th align="left">Feature</th>
-      <th align="left">Description</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td align="left"><b>Dark & Light</b></td>
-      <td align="left">Every theme comes in a dark and a light variant.</td>
-    </tr>
-    <tr>
-      <td align="left"><b>Balanced Colors</b></td>
-      <td align="left">All color families are generated from base colors of the same perceived brightness (OKLCH lightness).</td>
-    </tr>
-    <tr>
-      <td align="left"><b>Semantic Highlighting</b></td>
-      <td align="left">Semantic tokens are mapped onto the same colors as the TextMate scopes, for more accurate highlighting that stays consistent across languages.</td>
-    </tr>
-    <tr>
-      <td align="left"><b>Distinct Syntax Colors</b></td>
-      <td align="left">Syntax colors are checked to be clearly distinguishable from each other (OKLab color distance).</td>
-    </tr>
-    <tr>
-      <td align="left"><b>Readable Contrast</b></td>
-      <td align="left">Text colors are checked against their backgrounds (WCAG AA) in both variants.</td>
-    </tr>
-    <tr>
-      <td align="left"><b>Complete UI</b></td>
-      <td align="left">Hundreds of workbench colors styled, from the editor to the terminal.</td>
-    </tr>
-  </tbody>
-</table>
+| Feature | Description |
+| :------ | :---------- |
+| **Dark & Light** | Every theme comes in a dark and a light variant. |
+| **Balanced Colors** | All color families are generated from base colors of the same perceived brightness (OKLCH lightness). |
+| **Semantic Highlighting** | Semantic tokens are mapped onto the same colors as the TextMate scopes, for more accurate highlighting that stays consistent across languages. |
+| **Distinct Syntax Colors** | Syntax colors are checked to be clearly distinguishable from each other (OKLab color distance). |
+| **Readable Contrast** | Text colors are checked against their backgrounds (WCAG AA) in both variants. |
+| **Complete UI** | Hundreds of workbench colors styled, from the editor to the terminal. |
 
 <br>
 
 <span id="configuration" />
 
-## Configuration <img src="https://svg.xul.is/icon/settings?size=32&stroke=2" />
+## Configuration ![](https://svg.xul.is/icon/settings?size=32&stroke=2)
 
 1.  Open the command input by pressing <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> or the <kbd>F1</kbd> key.
 
@@ -98,7 +72,7 @@ ext install xulbux.theme-isolux
 
 <span id="recommended-settings" />
 
-## Recommended Settings <img src="https://svg.xul.is/icon/sliders-horizontal?size=32&stroke=2" />
+## Recommended Settings ![](https://svg.xul.is/icon/sliders-horizontal?size=32&stroke=2)
 
 For the best experience with Isolux, I highly recommend adding the following options to your user's `settings.json`:
 
@@ -123,11 +97,11 @@ For the best experience with Isolux, I highly recommend adding the following opt
 
 <span id="previews" />
 
-## Theme Previews <img src="https://svg.xul.is/icon/circle-fading-play?size=32&stroke=2" />
+## Theme Previews ![](https://svg.xul.is/icon/circle-fading-play?size=32&stroke=2)
 
 ### Isolux Pro
 
-<a href="https://github.com/xulbux/vscode-theme-isolux/blob/main/preview/img/isolux-pro.png"><img src="https://raw.githubusercontent.com/xulbux/vscode-theme-isolux/main/preview/img/isolux-pro.png" alt="Isolux Pro · Editor Preview"></a>
+[![Isolux Pro · Editor Preview](https://raw.githubusercontent.com/xulbux/vscode-theme-isolux/main/preview/img/isolux-pro.png)](https://github.com/xulbux/vscode-theme-isolux/blob/main/preview/img/isolux-pro.png)
 
 <br>
 <br>
@@ -135,7 +109,7 @@ For the best experience with Isolux, I highly recommend adding the following opt
 
 ## Enjoying this theme? Have suggestions?
 
-Please consider giving a <img src="https://svg.xul.is/icon/star?size=20&anim=pulse" /> on [**GitHub**](https://github.com/xulbux/vscode-theme-isolux) or leaving a review on [**Open VSX**](https://open-vsx.org/extension/xulbux/theme-isolux) or the [**Visual Studio Marketplace**](https://marketplace.visualstudio.com/items?itemName=xulbux.theme-isolux).
+Please consider giving a ![](https://svg.xul.is/icon/star?size=20&anim=pulse) on [**GitHub**](https://github.com/xulbux/vscode-theme-isolux) or leaving a review on [**Open VSX**](https://open-vsx.org/extension/xulbux/theme-isolux) or the [**Visual Studio Marketplace**](https://marketplace.visualstudio.com/items?itemName=xulbux.theme-isolux).
 
 <br>
 <br>
@@ -143,4 +117,4 @@ Please consider giving a <img src="https://svg.xul.is/icon/star?size=20&anim=pul
 
 ---
 
-<img src="https://svg.xul.is/icon/sparkles?size=20" /> Always creating more cool stuff for you! <img src="https://svg.xul.is/icon/sparkles?size=20" /> —⠀[**XulbuX**](https://xulbux.com)
+![](https://svg.xul.is/icon/sparkles?size=20) Always creating more cool stuff for you! ![](https://svg.xul.is/icon/sparkles?size=20) —⠀[**XulbuX**](https://xulbux.com)
