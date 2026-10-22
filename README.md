@@ -7,9 +7,9 @@
     <br>
     Isolux Theme
     <br><br>
-    <a href="https://github.com/xulbux/vscode-theme-isolux/commits"><img src="https://svg.xul.is/badge/gh/python-lib-xulbux/commit?color=rose"/></a>
-    <a href="https://github.com/xulbux/vscode-theme-isolux/issues"><img src="https://svg.xul.is/badge/gh/python-lib-xulbux/issues?color=rose"/></a>
-    <a href="https://github.com/xulbux/vscode-theme-isolux/stargazers"><img src="https://svg.xul.is/badge/gh/python-lib-xulbux/stars?variant=3&color=rose&anim=pulse"/></a>
+    <a href="https://github.com/xulbux/vscode-theme-isolux/commits"><img src="https://svg.xul.is/badge/gh/vscode-theme-isolux/commit?color=rose"/></a>
+    <a href="https://github.com/xulbux/vscode-theme-isolux/issues"><img src="https://svg.xul.is/badge/gh/vscode-theme-isolux/issues?color=rose"/></a>
+    <a href="https://github.com/xulbux/vscode-theme-isolux/stargazers"><img src="https://svg.xul.is/badge/gh/vscode-theme-isolux/stars?variant=3&color=rose&anim=pulse"/></a>
     <br>
     <a href="https://open-vsx.org/extension/xulbux/theme-isolux"><img src="https://svg.xul.is/badge/ovsx/xulbux/theme-isolux/v?color=indigo" /></a>
     <a href="https://open-vsx.org/extension/xulbux/theme-isolux"><img src="https://svg.xul.is/badge/ovsx/xulbux/theme-isolux/dt?color=indigo" /></a>
