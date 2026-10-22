@@ -109,7 +109,7 @@ For the best experience with Isolux, I highly recommend adding the following opt
 
 ## Enjoying this theme? Have suggestions?
 
-Please consider giving a ![](https://svg.xul.is/icon/star?size=20&anim=pulse) on [**GitHub**](https://github.com/xulbux/vscode-theme-isolux) or leaving a review on [**Open VSX**](https://open-vsx.org/extension/xulbux/theme-isolux) or the [**Visual Studio Marketplace**](https://marketplace.visualstudio.com/items?itemName=xulbux.theme-isolux).
+Please consider giving a ![star](https://svg.xul.is/icon/star?size=20&anim=pulse) on [**GitHub**](https://github.com/xulbux/vscode-theme-isolux) or leaving a review on [**Open VSX**](https://open-vsx.org/extension/xulbux/theme-isolux) or the [**Visual Studio Marketplace**](https://marketplace.visualstudio.com/items?itemName=xulbux.theme-isolux).
 
 <br>
 <br>
