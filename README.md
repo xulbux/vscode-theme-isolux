@@ -23,7 +23,7 @@ This VS Code extension contains themes with a calm, neutral base and a small set
 Every color family is derived from a base color with **the same perceived brightness**, so no hue stands out more than another.
 
 > <br>
-> <img src="https://svg.xul.is/icon/circle-fading-play?size=20" align="center" /> To get a better feeling of how the themes look in the editor, continue at the <a href="#previews"><b>previews</b></a>.
+> <img src="https://svg.xul.is/icon/circle-fading-play?size=20" /> To get a better feeling of how the themes look in the editor, continue at the <a href="#previews"><b>previews</b></a>.
 > <br>
 > <br>
 
@@ -32,7 +32,7 @@ Every color family is derived from a base color with **the same perceived bright
 
 <span id="installation" />
 
-## Installation <img src="https://svg.xul.is/icon/package?size=32&stroke=2" align="center" />
+## Installation <img src="https://svg.xul.is/icon/package?size=32&stroke=2" />
 
 Search for **Isolux Theme** in the VS Code extensions panel, or install via the command line:
 
@@ -44,7 +44,7 @@ ext install xulbux.theme-isolux
 
 <span id="features" />
 
-## Features <img src="https://svg.xul.is/icon/zap?size=32&stroke=2" align="center" />
+## Features <img src="https://svg.xul.is/icon/zap?size=32&stroke=2" />
 
 <table>
   <thead>
@@ -85,7 +85,7 @@ ext install xulbux.theme-isolux
 
 <span id="configuration" />
 
-## Configuration <img src="https://svg.xul.is/icon/settings?size=32&stroke=2" align="center" />
+## Configuration <img src="https://svg.xul.is/icon/settings?size=32&stroke=2" />
 
 1.  Open the command input by pressing <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> or the <kbd>F1</kbd> key.
 
@@ -98,7 +98,7 @@ ext install xulbux.theme-isolux
 
 <span id="recommended-settings" />
 
-## Recommended Settings <img src="https://svg.xul.is/icon/sliders-horizontal?size=32&stroke=2" align="center" />
+## Recommended Settings <img src="https://svg.xul.is/icon/sliders-horizontal?size=32&stroke=2" />
 
 For the best experience with Isolux, I highly recommend adding the following options to your user's `settings.json`:
 
@@ -123,7 +123,7 @@ For the best experience with Isolux, I highly recommend adding the following opt
 
 <span id="previews" />
 
-## Theme Previews <img src="https://svg.xul.is/icon/circle-fading-play?size=32&stroke=2" align="center" />
+## Theme Previews <img src="https://svg.xul.is/icon/circle-fading-play?size=32&stroke=2" />
 
 ### Isolux Pro
 
@@ -135,7 +135,7 @@ For the best experience with Isolux, I highly recommend adding the following opt
 
 ## Enjoying this theme? Have suggestions?
 
-Please consider giving a <img src="https://svg.xul.is/icon/star?size=20&anim=pulse" align="center" /> on [**GitHub**](https://github.com/xulbux/vscode-theme-isolux) or leaving a review on [**Open VSX**](https://open-vsx.org/extension/xulbux/theme-isolux) or the [**Visual Studio Marketplace**](https://marketplace.visualstudio.com/items?itemName=xulbux.theme-isolux).
+Please consider giving a <img src="https://svg.xul.is/icon/star?size=20&anim=pulse" /> on [**GitHub**](https://github.com/xulbux/vscode-theme-isolux) or leaving a review on [**Open VSX**](https://open-vsx.org/extension/xulbux/theme-isolux) or the [**Visual Studio Marketplace**](https://marketplace.visualstudio.com/items?itemName=xulbux.theme-isolux).
 
 <br>
 <br>
@@ -143,4 +143,4 @@ Please consider giving a <img src="https://svg.xul.is/icon/star?size=20&anim=pul
 
 ---
 
-<img src="https://svg.xul.is/icon/sparkles?size=20" align="center" /> Always creating more cool stuff for you! <img src="https://svg.xul.is/icon/sparkles?size=20" align="center" /> —⠀[**XulbuX**](https://xulbux.com)
+<img src="https://svg.xul.is/icon/sparkles?size=20" /> Always creating more cool stuff for you! <img src="https://svg.xul.is/icon/sparkles?size=20" /> —⠀[**XulbuX**](https://xulbux.com)
