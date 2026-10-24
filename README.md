@@ -64,21 +64,18 @@ ext install xulbux.theme-isolux
 
 ## <a href="#recommended-settings"><img src="https://svg.xul.is/icon/sliders-horizontal?size=32&stroke=2" align="left" /></a>Recommended Settings
 
-For the best experience with Isolux, I highly recommend adding the following options to your user's `settings.json`:
+For the best experience with Isolux, it's highly recommend adding the following options to your user's `settings.json`:
 
 ```jsonc
 {
-  // Enable colorization of matching brackets.
+  // Enable colorization of matching brackets:
   "editor.bracketPairColorization.enabled": true,
-  // Use an independent color pool for each bracket type.
   "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
-  // Highlight the guide lines of the active bracket pair.
+  // Highlight the guide lines of the active bracket pair:
   "editor.guides.bracketPairs": "active",
-  // Automatically switch between dark and light themes based on your OS.
+  // Automatically switch between dark and light themes based on your OS:
   "window.autoDetectColorScheme": true,
-  // The dark theme to use when the OS is in dark mode.
   "workbench.preferredDarkColorTheme": "Isolux Pro Dark",
-  // The light theme to use when the OS is in light mode.
   "workbench.preferredLightColorTheme": "Isolux Pro Light"
 }
 ```
