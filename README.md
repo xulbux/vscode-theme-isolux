@@ -1,5 +1,3 @@
-<span id="top" />
-
 <div align="center">
   <br><br>
   <h1>
@@ -30,8 +28,6 @@ Every color family is derived from a base color with **the same perceived bright
 <br>
 <br>
 
-<span id="installation" />
-
 ## <a href="#installation"><img src="https://svg.xul.is/icon/package?size=32&stroke=2" align="left" /></a>Installation
 
 Search for **Isolux Theme** in the VS Code extensions panel, or install via the command line:
@@ -41,8 +37,6 @@ ext install xulbux.theme-isolux
 ```
 
 <br>
-
-<span id="features" />
 
 ## <a href="#features"><img src="https://svg.xul.is/icon/zap?size=32&stroke=2" align="left" /></a>Features
 
@@ -57,8 +51,6 @@ ext install xulbux.theme-isolux
 
 <br>
 
-<span id="configuration" />
-
 ## <a href="#configuration"><img src="https://svg.xul.is/icon/settings?size=32&stroke=2" align="left" /></a>Configuration
 
 1.  Open the command input by pressing <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> or the <kbd>F1</kbd> key.
@@ -69,8 +61,6 @@ ext install xulbux.theme-isolux
 
 <br>
 <br>
-
-<span id="recommended-settings" />
 
 ## <a href="#recommended-settings"><img src="https://svg.xul.is/icon/sliders-horizontal?size=32&stroke=2" align="left" /></a>Recommended Settings
 
@@ -94,8 +84,6 @@ For the best experience with Isolux, I highly recommend adding the following opt
 ```
 
 <br>
-
-<span id="previews" />
 
 ## <a href="#previews"><img src="https://svg.xul.is/icon/circle-fading-play?size=32&stroke=2" align="left" /></a>Theme Previews
 
