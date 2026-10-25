@@ -5,13 +5,11 @@
     <br>
     Isolux Theme
     <br><br>
-    <a href="https://github.com/xulbux/vscode-theme-isolux/commits"><img src="https://svg.xul.is/badge/gh/xulbux/vscode-theme-isolux/commit?color=rose"/></a>
-    <a href="https://github.com/xulbux/vscode-theme-isolux/issues"><img src="https://svg.xul.is/badge/gh/xulbux/vscode-theme-isolux/issues?color=rose"/></a>
-    <a href="https://github.com/xulbux/vscode-theme-isolux/stargazers"><img src="https://svg.xul.is/badge/gh/xulbux/vscode-theme-isolux/stars?variant=3&color=rose&anim=pulse"/></a>
-    <br>
     <a href="https://open-vsx.org/extension/xulbux/theme-isolux"><img src="https://svg.xul.is/badge/ovsx/xulbux/theme-isolux/v?color=indigo" /></a>
     <a href="https://open-vsx.org/extension/xulbux/theme-isolux"><img src="https://svg.xul.is/badge/ovsx/xulbux/theme-isolux/dt?color=indigo" /></a>
-    <a href="https://github.com/xulbux/vscode-theme-isolux/blob/main/LICENSE"><img src="https://svg.xul.is/badge/license/MIT*?variant=3&color=indigo&icon=scale" /></a>
+    <a href="https://github.com/xulbux/vscode-theme-isolux/blob/main/LICENSE"><img src="https://svg.xul.is/badge/License/MIT*?variant=2&color=indigo&icon=scale" /></a>
+    <a href="https://github.com/xulbux/vscode-theme-isolux/commits"><img src="https://svg.xul.is/badge/gh/xulbux/vscode-theme-isolux/commit?variant=2&color=rose"/></a>
+    <a href="https://github.com/sponsors/xulbux"><img src="https://svg.xul.is/badge/Sponsor?variant=2&color=rose&icon=heart&anim=pulse"/></a>
   </h1>
   <h3>Calm dark and light themes with clear, semantic syntax colors.</h3>
   <br><br>
@@ -21,9 +19,8 @@ This VS Code extension contains themes with a calm, neutral base and a small set
 Every color family is derived from a base color with **the same perceived brightness**, so no hue stands out more than another.
 
 > <br>
-> To get a better feeling of how the themes look in the editor, continue at the <a href="#previews"><b>previews</b></a>.
-> <br>
-> <br>
+> &numsp;To get a better feeling of how the themes look in the editor, continue at the <a href="#previews"><b>previews</b></a>.
+> <br><br>
 
 <br>
 <br>
@@ -82,7 +79,7 @@ For the best experience with Isolux, it's highly recommend adding the following 
 
 <br>
 
-## <a href="#previews"><img src="https://svg.xul.is/icon/circle-fading-play?size=32&stroke=2" align="left" /></a>Theme Previews
+## <a href="#previews"><img src="https://svg.xul.is/icon/circle-fading-play?size=32&stroke=2" align="left" /></a>Previews
 
 ### Isolux Pro
 
@@ -92,9 +89,9 @@ For the best experience with Isolux, it's highly recommend adding the following 
 <br>
 <br>
 
-## Enjoying this theme? Have suggestions?
+## Enjoying this theme?&numsp;Have suggestions?
 
-Please consider giving a [![star](https://svg.xul.is/icon/star?size=20&anim=pulse)](https://github.com/xulbux/vscode-theme-isolux) on [**GitHub**](https://github.com/xulbux/vscode-theme-isolux) or leaving a review on [**Open VSX**](https://open-vsx.org/extension/xulbux/theme-isolux) or the [**Visual Studio Marketplace**](https://marketplace.visualstudio.com/items?itemName=xulbux.theme-isolux).
+Please consider giving a [![star](https://svg.xul.is/icon/star?size=20&anim=shake)](https://github.com/xulbux/vscode-theme-isolux) on [**GitHub**](https://github.com/xulbux/vscode-theme-isolux) or leaving a review on [**Open VSX**](https://open-vsx.org/extension/xulbux/theme-isolux) or the [**Visual Studio Marketplace**](https://marketplace.visualstudio.com/items?itemName=xulbux.theme-isolux).
 
 <br>
 <br>
@@ -102,4 +99,4 @@ Please consider giving a [![star](https://svg.xul.is/icon/star?size=20&anim=puls
 
 ---
 
-[![](https://svg.xul.is/icon/sparkles?size=20)](https://xulbux.com) Always creating more cool stuff for you! [![](https://svg.xul.is/icon/sparkles?size=20)](https://xulbux.com) —⠀[**XulbuX**](https://xulbux.com)
+[![](https://svg.xul.is/icon/sparkles?size=20)](https://xulbux.com) Always creating more cool stuff for you! [![](https://svg.xul.is/icon/sparkles?size=20)](https://xulbux.com)&emsp;—&numsp;[**XulbuX**](https://xulbux.com)
