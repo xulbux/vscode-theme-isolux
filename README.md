@@ -7,8 +7,8 @@
     <br><br>
     <a href="https://open-vsx.org/extension/xulbux/theme-isolux"><img src="https://svg.xul.is/badge/ovsx/xulbux/theme-isolux/v?color=indigo" /></a>
     <a href="https://open-vsx.org/extension/xulbux/theme-isolux"><img src="https://svg.xul.is/badge/ovsx/xulbux/theme-isolux/dt?color=indigo" /></a>
-    <a href="https://github.com/xulbux/vscode-theme-isolux/blob/main/LICENSE"><img src="https://svg.xul.is/badge/License/MIT*?variant=2&color=indigo&icon=scale" /></a>
-    <a href="https://github.com/xulbux/vscode-theme-isolux/commits"><img src="https://svg.xul.is/badge/gh/xulbux/vscode-theme-isolux/commit?variant=2&color=rose"/></a>
+    <a href="https://github.com/xulbux/vscode-theme-isolux/blob/main/LICENSE"><img src="https://svg.xul.is/badge/License/MIT*?variant=3&color=neutral&icon=scale" /></a>
+    <a href="https://github.com/xulbux/vscode-theme-isolux/commits"><img src="https://svg.xul.is/badge/gh/xulbux/vscode-theme-isolux/commit?variant=3&color=neutral"/></a>
     <a href="https://github.com/sponsors/xulbux"><img src="https://svg.xul.is/badge/Sponsor?variant=2&color=rose&icon=heart&anim=pulse"/></a>
   </h1>
   <h3>Calm dark and light themes with clear, semantic syntax colors.</h3>
