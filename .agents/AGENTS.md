@@ -20,6 +20,8 @@ pnpm run type-check; pnpm run lint; pnpm run fmt; pnpm run test; pnpm run build
 
 Fix all problems and warnings that arise until the output is completely clean. Use the `test` skill for the test suite and the `build` skill for packaging and installing the extension locally.
 
+-   **Keep `CHANGELOG.md` Updated (CRITICAL):** For **every** change made to the repository, immediately document it in `CHANGELOG.md` (following [Keep a Changelog](https://keepachangelog.com/en/1.1.0) under the current unreleased/top version section with `### Added`, `### Changed`, `### Fixed`, or `### Removed`) before considering the task complete.
+
 ## 4. Ask, Don't Assume
 
 If you run into anything you're not sure about (ambiguous requirements, color decisions, architectural changes), **ask first**. Don't make assumptions about the desired look or behavior.
