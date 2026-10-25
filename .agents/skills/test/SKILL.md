@@ -9,7 +9,7 @@ In accordance with the validation policy in `AGENTS.md` Section 3, use this skil
 
 ## 1. Architecture
 
-Tests use Node's built-in test runner (`node:test` with `node:assert/strict`) – no test dependencies. Node runs the TypeScript files directly (type stripping, Node `>=22.18`), just like the build. The tests live in `test/` and cover the pure modules of `scripts/`, which work without a VS Code installation:
+Tests use Node's built-in test runner (`node:test` with `node:assert/strict`) – no test dependencies. Node runs the TypeScript files directly (type stripping, Node `>=26`), just like the build. The tests live in `test/` and cover the pure modules of `scripts/`, which work without a VS Code installation:
 
 | File                   | Covers                                                                          |
 | ---------------------- | ------------------------------------------------------------------------------- |
@@ -34,8 +34,3 @@ Tests use Node's built-in test runner (`node:test` with `node:assert/strict`) �
 pnpm run test
 ```
 
-To check the oldest supported Node version as well:
-
-```bash
-pnpm dlx node@22.18.0 --test "test/**/*.test.ts"
-```
