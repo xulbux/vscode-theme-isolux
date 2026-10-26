@@ -1,7 +1,7 @@
 <div align="center">
   <br><br>
   <h1>
-    <a href="https://github.com/xulbux/vscode-theme-isolux"><img width="96" src="https://raw.githubusercontent.com/xulbux/vscode-theme-isolux/main/assets/icon.png"></a>
+    <a href="https://github.com/xulbux/vscode-theme-isolux"><img height="96" src="https://raw.githubusercontent.com/xulbux/vscode-theme-isolux/main/assets/icon.png"></a>
     <br>
     Isolux Theme
     <br><br>
