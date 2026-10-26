@@ -1025,10 +1025,6 @@
         "punctuation.definition.subshell",
         "punctuation.definition.template-expression.begin",
         "punctuation.definition.template-expression.end",
-        "punctuation.section.embedded constant.other",
-        "punctuation.section.embedded entity.name.tag",
-        "punctuation.section.embedded source",
-        "punctuation.section.embedded",
         "punctuation.template-string.element.begin",
         "punctuation.template-string.element.end",
         "storage.modifier.pointer",
@@ -1058,6 +1054,9 @@
     {
       "scope": [
         "comment variable",
+        "constant.other.key.groovy",
+        "constant.other.key.java",
+        "constant.other.key.perl",
         "constant.other.symbol.hashkey",
         "entity.name.variable.field",
         "entity.name.variable.property",
@@ -1130,6 +1129,7 @@
         "meta.type storage.modifier.array",
         "punctuation.definition.string.end.html source.css",
         "punctuation.definition.tag source",
+        "punctuation.section.embedded",
         "meta.function.parameters.python",
         "punctuation.separator entity.name.function.operator",
         "punctuation",
@@ -1139,7 +1139,6 @@
         "source.git-show meta.diff.header.from-file",
         "source.git-show meta.diff.header.to-file",
         "string punctuation.definition.string source",
-        "string source punctuation.section.embedded",
         "support.function.delimiter.elm"
       ],
       "settings": { "foreground": "token.punctuation" }
@@ -1148,7 +1147,6 @@
       "scope": [
         "comment keyword.codetag.notation",
         "constant.other.reference.link",
-        "entity.name.constant",
         "entity.name.import.go",
         "entity.other.git-status.hex",
         "markup.quote meta.paragraph",
@@ -1257,7 +1255,17 @@
     },
     {
       "scope": [
+        "constant.other.caps.python",
+        "constant.other.caps.rust",
+        "constant.other.class.php",
+        "constant.other.database-name.sql",
         "constant.other.elm",
+        "constant.other.php",
+        "constant.other.table-name.sql",
+        "constant.other.variable.mac-classic.c",
+        "constant.other.variable.mac-classic.objc",
+        "constant.other.variable.mac-classic.objcpp",
+        "entity.name.constant",
         "entity.name.label",
         "entity.name.variable",
         "meta.at-rule.header",

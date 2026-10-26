@@ -5,6 +5,15 @@ All notable changes to the **Isolux Theme** extension will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] – 2026-10-26
+
+### Fixed
+
+-   Highlight user-defined constant identifiers as neutral identifiers instead of literal values.
+-   Render embedded code block delimiters (`<?php`, `?>`, `<%`, `%>`, …) as muted punctuation rather than operators.
+-   Highlight configuration and properties keys as properties instead of literal values.
+-   Correct constant entity declarations to render as neutral variables instead of strings.
+
 ## [1.0.2] – 2026-10-25
 
 ### Changed
@@ -17,16 +26,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   Add GitHub Markdown alert callouts (`markdownAlert.*.foreground`).
--   Add base indent guide fallbacks (`editorIndentGuide.activeBackground`, `editorIndentGuide.background`) and multi-cursor styling (`editorMultiCursor.*.foreground`).
+-   Add GitHub Markdown alert callouts.
+-   Add base indent guide fallbacks and multi-cursor styling.
 
 ### Changed
 
--   Highlight component tag names (JSX, Vue components) as types (`token.type`) to distinguish them from native DOM elements, and render native HTML/XML tags as structural keywords (`token.keyword`) for clear contrast against text content.
--   Render Vue control directives (`v-if`, `v-for`, etc.) as upright attributes (`token.property`) to eliminate visual collisions with tag names on single-line elements.
--   Highlight HTML class and ID attribute values as standard strings (`token.string`) instead of function identifiers.
--   Improve contrast and visibility of pre-release extension badges across dark and light variants (`extensionIcon.preReleaseForeground`).
--   Brighten merge conflict colors (`ui.conflict`) to match Git saturation, and align renamed files (`gitDecoration.renamedResourceForeground`) with additions to avoid colliding with diagnostic warnings.
+-   Highlight component tag names (JSX, Vue components) as types to distinguish them from native DOM elements, and render native HTML/XML tags as structural keywords for clear contrast against text content.
+-   Render Vue control directives (`v-if`, `v-for`, etc.) as upright attributes to eliminate visual collisions with tag names on single-line elements.
+-   Highlight HTML class and ID attribute values as standard strings instead of function identifiers.
+-   Improve contrast and visibility of pre-release extension badges across dark and light variants.
+-   Brighten merge conflict colors to match Git saturation, and align renamed files with additions to avoid colliding with diagnostic warnings.
 -   Allow list and tree icons to retain their individual semantic colors on active selection.
 -   Restrict validated color keys in the build system strictly to official VS Code core and built-in extension colors.
 
