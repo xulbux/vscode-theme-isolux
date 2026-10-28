@@ -9,6 +9,7 @@ theme/
 
 dist/*.schema.json
 
+.gitattributes
 .gitignore
 .markdownlint.json
 .oxfmtrc.json

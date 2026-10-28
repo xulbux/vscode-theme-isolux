@@ -61,7 +61,7 @@ ext install xulbux.theme-isolux
 
 ## <a href="#recommended-settings"><img src="https://svg.xul.is/icon/sliders-horizontal?size=32&stroke=2" align="left" /></a>Recommended Settings
 
-For the best experience with Isolux, it's highly recommend adding the following options to your user's `settings.json`:
+For the best experience with Isolux, it's highly recommended to add the following options to your user's `settings.json`:
 
 ```jsonc
 {

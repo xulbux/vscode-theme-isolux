@@ -29,8 +29,8 @@ function mirror(scale: ShadeScale, shade: Shade): readonly [ThemeColor, ThemeCol
 }
 
 /**
- * Get the tokens of a bracket nesting level: the bracket color (`400`, also used for its active pair guide)
- * and its pair guide (`950`), each mirrored for light (see `mirror`).
+ * Get the tokens of a bracket nesting level: the bracket color (`400` in dark, `700` in light for `4.5:1` contrast,
+ * also used for its active pair guide) and its subtle pair guide (`900` desaturated in dark, `100` in light).
  *
  * @param scale   The shade scale of the color family (e.g., `color.violet`).
  */
@@ -38,14 +38,14 @@ function bracket(scale: ShadeScale): {
   DEFAULT: readonly [ThemeColor, ThemeColor];
   guide: readonly [ThemeColor, ThemeColor];
 } {
-  return { DEFAULT: mirror(scale, 400), guide: [saturate(scale[900], 0.75), scale[100]] };
+  return { DEFAULT: [scale[400], scale[700]], guide: [saturate(scale[900], 0.75), scale[100]] };
 }
 
 // -------------------------------------- PUBLIC API -------------------------------------
 
 const { amber, cyan, fuchsia, gray, green, indigo, orange, purple, red, violet } = color;
 
-/** Isolux ProNeutral – Neutral grays and clearly separated syntax colors, each with one meaning. */
+/** Isolux Pro – Neutral grays and clearly separated syntax colors, each with one meaning. */
 export function isoluxPro() {
   // Neutrals (the gray scale isn't evenly spaced, so the light grays are picked instead of mirrored):
   const white = lightness(gray[50], 1.5);
@@ -124,12 +124,12 @@ export function isoluxPro() {
         DEFAULT: background,
         sidebar: [gray[900], lightness(gray[50], 0.99)],
         raised,
-        raisedHover: [gray[500], lightness(gray[100], 1.02)],
+        raisedHover: [gray[700], lightness(gray[100], 1.02)],
         popover: [gray[800], white],
         popoverHeader: [gray[700], lightness(gray[50], 0.97)],
         bar: [gray[800], lightness(gray[50], 0.975)],
         input: [gray[800], white],
-        tabs: [lightness(gray[700], 0.92), lightness(gray[50], 0.96)],
+        tabs: [lightness(gray[800], 1.15), lightness(gray[50], 0.96)],
         bubble: [gray[700], lightness(gray[100], 1.04)],
         bubbleHover: [lightness(gray[700], 0.84), gray[100]],
         code: alpha(overlay, 0.1),
@@ -158,7 +158,6 @@ export function isoluxPro() {
         DEFAULT: border,
         strong: borderStrong,
         subtle: [gray[700], lightness(gray[100], 1.02)],
-        faint: [gray[800], lightness(gray[50], 0.96)],
         focus: foregroundFaint,
         input: borderStrong,
         indicator: foregroundMuted,
@@ -205,8 +204,8 @@ export function isoluxPro() {
         message: alpha(foregroundSecondary, 0.1),
       },
       whitespace: alpha(overlay, 0.15),
-      scrollbar: { DEFAULT: alpha(overlay, 0.3), hover: alpha(overlay, 0.4) },
-      minimapSlider: { DEFAULT: alpha(overlay, 0.2), hover: alpha(overlay, 0.25) },
+      scrollbar: { DEFAULT: alpha(overlay, 0.2), hover: alpha(overlay, 0.25) },
+      minimapSlider: { DEFAULT: alpha(overlay, 0.15), hover: alpha(overlay, 0.2) },
 
       // Roles:
       accent: {
@@ -297,23 +296,23 @@ export function isoluxPro() {
 
       // Categories (keep their hue independently of the roles):
       ansi: {
-        foreground: mirror(indigo, 200),
+        foreground: [indigo[100], gray[800]],
         black: [gray[600], gray[800]],
-        red: [red[400], red[700]],
-        green: mirror(green, 200),
-        yellow: mirror(amber, 300),
-        blue: [indigo[400], indigo[800]],
-        magenta: [violet[400], violet[700]],
-        cyan: mirror(cyan, 200),
-        white: [gray[100], gray[300]],
+        red: [red[400], saturate(red[800], 0.95)],
+        green: [green[200], saturate(green[800], 1.25)],
+        yellow: [amber[300], amber[800]],
+        blue: [indigo[400], saturate(indigo[800], 0.8)],
+        magenta: [violet[400], saturate(violet[800], 0.8)],
+        cyan: [cyan[200], saturate(cyan[800], 1.2)],
+        white: [gray[100], gray[200]],
         brightBlack: gray[400],
-        brightRed: mirror(red, 300),
-        brightGreen: mirror(green, 100),
-        brightYellow: mirror(amber, 200),
-        brightBlue: mirror(indigo, 300),
-        brightMagenta: mirror(violet, 300),
-        brightCyan: mirror(cyan, 100),
-        brightWhite: [gray[50], gray[200]],
+        brightRed: [red[300], saturate(red[700], 0.95)],
+        brightGreen: [green[100], saturate(green[700], 1.25)],
+        brightYellow: [amber[200], amber[700]],
+        brightBlue: [indigo[300], saturate(indigo[700], 0.8)],
+        brightMagenta: [violet[300], saturate(violet[700], 0.75)],
+        brightCyan: [cyan[100], saturate(cyan[700], 1.2)],
+        brightWhite: [gray[50], gray[100]],
       },
       // One hue per nesting level; VS Code repeats them for deeper levels:
       bracket: {
@@ -326,7 +325,7 @@ export function isoluxPro() {
         6: bracket(cyan),
       },
       chart: {
-        blue: mirror(indigo, 500),
+        blue: [indigo[500], indigo[700]],
         green: mirror(cyan, 300),
         orange: mirror(orange, 400),
         purple: mirror(violet, 400),
@@ -337,8 +336,8 @@ export function isoluxPro() {
         breakpoint: mirror(red, 400),
         breakpointUnverified: mirror(orange, 400),
         pause: mirror(amber, 300),
-        restart: mirror(indigo, 500),
-        stackframe: mirror(indigo, 500),
+        restart: [indigo[500], indigo[700]],
+        stackframe: [indigo[500], indigo[700]],
         start: mirror(indigo, 300),
         stop: mirror(red, 400),
       },
@@ -347,7 +346,7 @@ export function isoluxPro() {
         2: mirror(violet, 400),
         3: mirror(fuchsia, 400),
         4: mirror(amber, 300),
-        5: mirror(cyan, 200),
+        5: [cyan[200], cyan[700]],
         baseRef: mirror(orange, 400),
       },
       extension: {
@@ -358,7 +357,7 @@ export function isoluxPro() {
       lightBulb: accent,
       markdownAlert: { important: mirror(purple, 300), tip: mirror(green, 300) },
       running: mirror(orange, 400),
-      submodule: mirror(cyan, 200),
+      submodule: [cyan[200], cyan[700]],
     },
   });
 }

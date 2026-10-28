@@ -203,7 +203,7 @@ const CONTRAST_PAIRS: readonly ContrastPair[] = [
     'terminal.ansiRed': TEXT,
     'terminal.ansiYellow': TEXT,
   }),
-  ...statePairs('statusBar', ['', 'debugging'], TEXT),
+  ...statePairs('statusBar', ['', 'debugging', 'noFolder'], TEXT),
   ...statePairs(
     'statusBarItem',
     [
