@@ -12,6 +12,8 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     steps:
       - uses: actions/checkout@v7
 
@@ -21,14 +23,14 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version-file: 'package.json'
           cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Validate
-        run: pnpm run type-check && pnpm run lint:check && pnpm run fmt:check && pnpm run test
+        run: pnpm run fmt:check && pnpm run lint:check && pnpm run type-check && pnpm run test
 
       # `vsce package` runs `vscode:prepublish`, which builds the themes in strict mode.
       - name: Package

@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 -   Tone down the dark editor tab strip background to sit just a step above the window bar surface for calm yet clear active-tab separation across OLED and non-OLED displays.
 -   Soften scrollbar and minimap slider opacities for a calmer editor appearance, and increase default terminal foreground contrast.
 -   Align the Marketplace gallery banner color with the updated sidebar surface and exclude `.gitattributes` from packaged `.vsix` archives.
+-   Align the GitHub Release workflow's Node.js version resolution with `package.json` (`>=26`), matching CI.
 
 ### Fixed
 
