@@ -58,16 +58,16 @@ export function isoluxPro() {
   const foregroundSecondary = [gray[200], gray[500]] as const;
   const foregroundMuted = [gray[300], gray[400]] as const;
   const foregroundFaint = [gray[400], lightness(gray[300], 1.025)] as const;
-  const border = [gray[600], gray[100]] as const;
-  const borderStrong = [gray[500], lightness(gray[200], 1.08)] as const;
-  const raised = [gray[800], lightness(gray[50], 0.97)] as const;
+  const border = [gray[600], lightness(gray[100], 1.02)] as const;
+  const borderStrong = [gray[500], lightness(gray[200], 1.12)] as const;
+  const raised = [gray[800], lightness(gray[50], 0.985)] as const;
   const onFill = mirror(gray, 950); // Candidates for text on colored fills (see `onColor`).
 
   // Buttons:
   const button = [lightness(gray[100], 0.96), gray[700]] as const;
   const buttonHover = [lightness(gray[100], 0.92), lightness(gray[700], 1.3)] as const;
-  const buttonNeutral = [gray[700], gray[100]] as const;
-  const buttonNeutralHover = [lightness(gray[700], 0.78), lightness(gray[100], 0.97)] as const;
+  const buttonNeutral = [gray[700], lightness(gray[50], 0.965)] as const;
+  const buttonNeutralHover = [lightness(gray[700], 0.78), gray[100]] as const;
 
   // Roles (one shade darker than mirrored in light, so role text on its own tint stays readable).
   // Info is neutral, so only problems and changes stand out in color:
@@ -122,16 +122,16 @@ export function isoluxPro() {
     ui: {
       background: {
         DEFAULT: background,
-        sidebar: [gray[900], lightness(gray[50], 0.99)],
+        sidebar: [gray[900], gray[50]],
         raised,
-        raisedHover: [gray[700], lightness(gray[100], 1.02)],
+        raisedHover: [gray[700], lightness(gray[50], 0.965)],
         popover: [gray[800], white],
-        popoverHeader: [gray[700], lightness(gray[50], 0.97)],
-        bar: [gray[800], lightness(gray[50], 0.975)],
+        popoverHeader: [gray[700], lightness(gray[50], 0.985)],
+        bar: [gray[800], lightness(gray[50], 0.99)],
         input: [gray[800], white],
-        tabs: [lightness(gray[800], 1.15), lightness(gray[50], 0.96)],
-        bubble: [gray[700], lightness(gray[100], 1.04)],
-        bubbleHover: [lightness(gray[700], 0.84), gray[100]],
+        tabs: [lightness(gray[800], 1.15), lightness(gray[50], 0.98)],
+        bubble: [gray[700], lightness(gray[50], 0.98)],
+        bubbleHover: [lightness(gray[700], 0.84), lightness(gray[50], 0.96)],
         code: alpha(overlay, 0.1),
         hover,
         hoverSubtle: alpha(overlay, 0.05),
@@ -157,7 +157,7 @@ export function isoluxPro() {
       border: {
         DEFAULT: border,
         strong: borderStrong,
-        subtle: [gray[700], lightness(gray[100], 1.02)],
+        subtle: [gray[700], lightness(gray[100], 1.04)],
         focus: foregroundFaint,
         input: borderStrong,
         indicator: foregroundMuted,

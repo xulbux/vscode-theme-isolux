@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 -   Lift the dark editor canvas slightly off pure black and brighten the sidebar surface to keep clear separation below the window frame while reducing halation and OLED smearing.
+-   Brighten light workbench surfaces, tabs, buttons, and borders closer to `#FAFAFA` so the light variant feels crisp and airy around the `#FFF` editor instead of overcast gray.
 -   Tone down the dark editor tab strip background to sit just a step above the window bar surface for calm yet clear active-tab separation across OLED and non-OLED displays.
 -   Soften scrollbar and minimap slider opacities for a calmer editor appearance, and increase default terminal foreground contrast.
 -   Align the Marketplace gallery banner color with the updated sidebar surface and exclude `.gitattributes` from packaged `.vsix` archives.
