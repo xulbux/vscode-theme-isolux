@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <br>
 
+## [1.0.4] – 2026-11-04
+
+### Changed
+
+-   Darken and saturate dark terminal ANSI colors so normal and bright variants stay vibrant instead of looking washed out.
+
+### Fixed
+
+-   Highlight generic subscript types in Python function and class headers as types when semantic highlighting is unavailable, while keeping positional and keyword parameter separator commas muted as punctuation.
+-   Improve non-semantic TextMate syntax highlighting across languages to match semantic highlighting more closely (JS/TS `new` constructors, Rust format-string interpolations, parameters, and built-in primitive types, C# built-in types, PHP function parameters, Ruby hash keys and keyword parameters, Swift function parameters, and Lua property accesses).
+-   Render JSX and TSX tag attribute `=` signs as muted punctuation instead of operators, matching HTML and XML attributes without affecting embedded JS/TS assignments.
+-   Highlight inline and trailing regular expression pattern flags (e.g., Python `(?i)`, Perl `/ix`) as upright regex syntax operators instead of declaration keywords.
+
+<br>
+
 ## [1.0.3] – 2026-10-28
 
 ### Changed
